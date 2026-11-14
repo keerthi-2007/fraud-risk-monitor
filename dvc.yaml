@@ -1,0 +1,35 @@
+stages:
+  prepare_data:
+    cmd: python scripts/clean_dataset.py
+    deps:
+    - data/raw/creditcard.csv
+    - requirements.txt
+    - scripts/clean_dataset.py
+    outs:
+    - data/processed/creditcard_prepared.csv
+  create_splits:
+    cmd: python scripts/create_splits.py
+    deps:
+    - data/processed/creditcard_prepared.csv
+    - requirements.txt
+    - scripts/create_splits.py
+    outs:
+    - data/processed/splits
+  spark_audit:
+    cmd: python scripts/spark_audit.py
+    deps:
+    - data/raw/creditcard.csv
+    - requirements.txt
+    - scripts/spark_audit.py
+    outs:
+    - data/processed/spark_audit.json
+  build_drift_baseline:
+    cmd: python -m scripts.build_drift_baseline
+    deps:
+    - data/processed/splits/train.csv
+    - scripts/build_drift_baseline.py
+    - scripts/drift_detector.py
+    - requirements.txt
+    outs:
+    - monitoring/drift_baseline.json:
+        cache: false

@@ -1,0 +1,8 @@
+name: fraud-risk-monitor
+
+entry_points:
+  train:
+    command: "python scripts/train_baselines.py"
+
+  evaluate:
+    command: "python scripts/evaluate_final.py"

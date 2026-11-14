@@ -1,0 +1,100 @@
+services:
+  backend:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      MLFLOW_TRACKING_URI: sqlite:////app/mlflow.db
+      MODEL_RUN_ID: 27da3507bddb413bab9cd0a12aeb092a
+      MODEL_URI: models:/FraudRiskClassifier/1
+      EVALUATION_RUN_ID: 008277161614417d8da7e13727013676
+      DECISION_THRESHOLD: '0.87292890258894895'
+      MONITORING_TOKEN: ${MONITORING_TOKEN:?Set MONITORING_TOKEN in .env}
+      FEEDBACK_TOKEN: ${FEEDBACK_TOKEN:?Set FEEDBACK_TOKEN in .env}
+    volumes:
+      - ./mlflow.db:/app/mlflow.db
+      - ./mlartifacts:/home/ariro/Documents/fraud-risk-monitor/mlartifacts:ro
+      - ./data/feedback:/app/data/feedback
+      - ./monitoring/pipeline_status.json:/app/monitoring/pipeline_status.json:ro
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  frontend:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      FRAUD_API_URL: http://backend:8000
+      MONITORING_TOKEN: ${MONITORING_TOKEN:?Set MONITORING_TOKEN in .env}
+      FEEDBACK_TOKEN: ${FEEDBACK_TOKEN:?Set FEEDBACK_TOKEN in .env}
+    ports:
+      - "8501:8501"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:v3.16.0
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts:/etc/prometheus/alerts:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9091:9090"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  cadvisor:
+    image: ghcr.io/google/cadvisor:v0.60.6
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    expose:
+      - "8080"
+    restart: unless-stopped
+
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "127.0.0.1:9093:9093"
+    restart: unless-stopped
+
+
+  alert-webhook:
+    image: python:3.14-slim
+    working_dir: /app
+    command: ["python", "-u", "/app/receiver.py"]
+    volumes:
+      - ./monitoring/webhook/receiver.py:/app/receiver.py:ro
+      - ./monitoring/notifications:/app/notifications
+    expose:
+      - "8085"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:13.3.0
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  prometheus_data:
+  grafana_data:

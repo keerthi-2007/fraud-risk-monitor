@@ -1,0 +1,87 @@
+schema: '2.0'
+stages:
+  prepare_data:
+    cmd: python scripts/clean_dataset.py
+    deps:
+    - path: data/raw/creditcard.csv
+      hash: md5
+      md5: 2f36adfb0641c7c369bf19d7c9eb748d
+      size: 148416956
+    - path: requirements.txt
+      hash: md5
+      md5: 4eeba27c473d19d0980b5b520548c354
+      size: 3407
+    - path: scripts/clean_dataset.py
+      hash: md5
+      md5: 88f1e2f7edba6fb73a9aed50db2aae7a
+      size: 3890
+    outs:
+    - path: data/processed/creditcard_prepared.csv
+      hash: md5
+      md5: c4d044783984c9a181fcd698bfc907c8
+      size: 150295052
+  create_splits:
+    cmd: python scripts/create_splits.py
+    deps:
+    - path: data/processed/creditcard_prepared.csv
+      hash: md5
+      md5: c4d044783984c9a181fcd698bfc907c8
+      size: 150295052
+    - path: requirements.txt
+      hash: md5
+      md5: 4eeba27c473d19d0980b5b520548c354
+      size: 3407
+    - path: scripts/create_splits.py
+      hash: md5
+      md5: c9f56fdff1c05da8d6f2e601317b9b25
+      size: 3462
+    outs:
+    - path: data/processed/splits
+      hash: md5
+      md5: f8b2abf9d16f076328ad93343e819a8e.dir
+      size: 148418321
+      nfiles: 4
+  spark_audit:
+    cmd: python scripts/spark_audit.py
+    deps:
+    - path: data/raw/creditcard.csv
+      hash: md5
+      md5: 2f36adfb0641c7c369bf19d7c9eb748d
+      size: 148416956
+    - path: requirements.txt
+      hash: md5
+      md5: 4eeba27c473d19d0980b5b520548c354
+      size: 3407
+    - path: scripts/spark_audit.py
+      hash: md5
+      md5: 197c2bca83fa773b85e6a3c236f6929c
+      size: 6484
+    outs:
+    - path: data/processed/spark_audit.json
+      hash: md5
+      md5: e724a013e8b57edde2d36e4f970e043f
+      size: 556
+  build_drift_baseline:
+    cmd: python -m scripts.build_drift_baseline
+    deps:
+    - path: data/processed/splits/train.csv
+      hash: md5
+      md5: f857e638b5a706559ec45fe0eb06e561
+      size: 89049260
+    - path: requirements.txt
+      hash: md5
+      md5: 4eeba27c473d19d0980b5b520548c354
+      size: 3407
+    - path: scripts/build_drift_baseline.py
+      hash: md5
+      md5: 77d29532ae1dcdd6407f792c5628d47f
+      size: 1963
+    - path: scripts/drift_detector.py
+      hash: md5
+      md5: 9f98d52a35ff6e9cfb8f240b528dc4e2
+      size: 2974
+    outs:
+    - path: monitoring/drift_baseline.json
+      hash: md5
+      md5: 454eca6810420cc81dcbaed3a9a58e3f
+      size: 15339
