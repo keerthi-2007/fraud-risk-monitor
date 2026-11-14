@@ -1,0 +1,39 @@
+rule_files:
+  - fraud-alerts.yml
+
+evaluation_interval: 15s
+
+tests:
+  - name: HTTP 5xx errors trigger a warning
+    interval: 15s
+    input_series:
+      - series: 'fraud_api_requests_total{method="POST",route="/predict",status="500"}'
+        values: '0+1x40'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: FraudHighServerErrors
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              service: fraud-api
+            exp_annotations:
+              summary: "Elevated HTTP 5xx errors"
+              description: "The fraud API recorded more than 5 server errors in 5 minutes."
+
+  - name: High API error rate triggers a warning
+    interval: 15s
+    input_series:
+      - series: 'fraud_api_requests_total{method="POST",route="/predict",status="422"}'
+        values: '0+1x40'
+      - series: 'fraud_api_requests_total{method="POST",route="/predict",status="200"}'
+        values: '0+2x40'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: FraudHighAPIErrorRate
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              service: fraud-api
+            exp_annotations:
+              summary: "High fraud API error rate"
+              description: "More than 10% of API requests are failing with sufficient traffic."

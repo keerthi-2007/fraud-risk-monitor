@@ -1,0 +1,67 @@
+groups:
+  - name: fraud-risk-monitor
+    interval: 15s
+    rules:
+      - alert: FraudAPIDown
+        expr: up{job="fraud-risk-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: fraud-api
+        annotations:
+          summary: "Fraud detection API is unavailable"
+          description: "Prometheus cannot scrape the fraud API for at least 1 minute."
+
+      - alert: FraudHighServerErrors
+        expr: |
+          (sum(increase(fraud_api_requests_total{status=~"5.."}[5m])) or vector(0)) > 5
+        for: 1m
+        labels:
+          severity: warning
+          service: fraud-api
+        annotations:
+          summary: "Elevated HTTP 5xx errors"
+          description: "The fraud API recorded more than 5 server errors in 5 minutes."
+
+      - alert: FraudHighAPIErrorRate
+        expr: |
+          (
+            (sum(rate(fraud_api_requests_total{status=~"[45].."}[5m])) or vector(0))
+            /
+            clamp_min(sum(rate(fraud_api_requests_total[5m])), 0.000001)
+          ) > 0.10
+          and
+          sum(increase(fraud_api_requests_total[5m])) > 20
+        for: 2m
+        labels:
+          severity: warning
+          service: fraud-api
+        annotations:
+          summary: "High fraud API error rate"
+          description: "More than 10% of API requests are failing with sufficient traffic."
+
+      - alert: FraudFeatureDriftHigh
+        expr: |
+          (fraud_feature_drift_psi > 0.20)
+          and on()
+          (
+            time() - fraud_drift_last_analysis_timestamp_seconds < 900
+          )
+        for: 1m
+        labels:
+          severity: warning
+          service: fraud-api
+        annotations:
+          summary: "High transaction feature drift detected"
+          description: "Feature {{ $labels.feature }} has PSI {{ $value }} above 0.20."
+
+      - alert: FraudDriftMonitoringFailure
+        expr: |
+          increase(fraud_drift_analyses_total{status="error"}[10m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          service: fraud-api
+        annotations:
+          summary: "Transaction drift monitoring failed"
+          description: "At least one drift analysis failed in the last 10 minutes."

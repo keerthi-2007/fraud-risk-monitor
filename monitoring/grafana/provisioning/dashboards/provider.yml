@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: Fraud Risk Monitor
+    orgId: 1
+    folder: Fraud Risk Monitor
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
