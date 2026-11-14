@@ -1,0 +1,68 @@
+name: AIOps CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  portable-tests:
+    name: Portable automated tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements-api.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install \
+            -r requirements-api.txt \
+            pytest httpx requests PyYAML
+
+      - name: Check Python syntax
+        run: python -m compileall -q backend frontend scripts tests
+
+      - name: Run portable tests
+        run: |
+          python -m pytest \
+            tests/test_api.py \
+            tests/test_csv_drift_integration.py \
+            tests/test_drift_detector.py \
+            tests/test_drift_monitor.py \
+            tests/test_feedback.py \
+            tests/test_feedback_metrics.py \
+            tests/test_feedback_metrics_api.py \
+            tests/test_feedback_monitor.py \
+            tests/test_model_loading.py \
+            tests/test_pipeline_client.py \
+            tests/test_pipeline_history.py \
+            tests/test_pipeline_status.py \
+            tests/test_pipeline_status_api.py \
+            tests/test_run_pipeline_stage.py \
+            tests/test_spark_throughput.py \
+            -q
+
+  docker-build:
+    name: Docker image build verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -f backend/Dockerfile -t aiops-backend-ci .
+
+      - name: Build frontend image
+        run: docker build -f frontend/Dockerfile -t aiops-frontend-ci .
