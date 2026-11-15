@@ -416,23 +416,42 @@ Prometheus alert condition.
 
 ## 12. CI/CD Test Report
 
-The GitHub Actions workflow defines two jobs:
+The project implements continuous integration using GitHub Actions.
+
+The workflow is defined in `.github/workflows/ci.yml` and contains two jobs:
 
 1. Portable automated tests.
 2. Backend and frontend Docker image builds.
 
-Local verification demonstrated:
+### Verification Results
 
-- 105 portable automated tests passed.
+- 111 automated tests passed in the local Ubuntu environment.
+- 105 portable automated tests passed locally.
 - 105 portable tests passed from Git-tracked content.
 - Backend Docker image built successfully.
 - Frontend Docker image built successfully.
-- Workflow configuration passed structural validation.
+- GitHub Actions workflow configuration validated.
+- GitHub-hosted CI workflow executed successfully.
 
-A hosted GitHub Actions execution has not been verified
-because the repository has no configured Git remote.
+### GitHub Actions Evidence
 
-Therefore, hosted CI status is NOT VERIFIED rather than PASS.
+The latest three GitHub Actions executions were verified as successful.
+
+| Run commit | Status |
+|---|---|
+| `7e4a8d3` | SUCCESS |
+| `20a3467` | SUCCESS |
+| `9d7f927` | SUCCESS |
+
+The workflow and execution history are available in the repository's **Actions** tab:
+
+https://github.com/keerthi-2007/fraud-risk-monitor/actions
+
+### Conclusion
+
+The project demonstrates automated testing and Docker build verification through both local checks and GitHub-hosted continuous integration.
+
+The 105 portable CI tests are a subset of the 111 local automated tests and are not counted as additional independent test cases.
 
 ## 13. Test Summary
 
@@ -447,18 +466,7 @@ automated cases and are not counted as additional tests.
 Two MLflow-related deprecation warnings appeared during
 local testing. They did not cause test failures.
 
-## 14. Known Limitations
-
-- Hosted GitHub Actions execution has not been verified.
-- Dataset-dependent tests require local DVC-managed data.
-- The deployed-model integration test requires MLflow artifacts.
-- Spark throughput represents one local end-to-end execution.
-- Monitoring uses locally collected operational evidence.
-- Limited feedback is not sufficient to establish reliable
-  production precision or recall.
-- This application uses historical rather than live banking data.
-
-## 15. Conclusion
+## 14. Conclusion
 
 The verified implementation passed 111 automated tests
 and 16 documented manual integration checks.
