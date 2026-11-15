@@ -1,8 +1,6 @@
 # AIOps Fraud Risk Monitor
 ## Low-Level Design and API Specification
 
-**Version:** 1.0
-**Date:** 14 November 2026
 **Implementation:** FastAPI, Python, MLflow, Streamlit
 
 ---
