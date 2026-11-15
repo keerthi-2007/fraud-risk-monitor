@@ -841,6 +841,7 @@ These include:
 9. Data Flow Diagram — Level 1
 10. API Interaction
 11. End-to-End AIOps Workflow
+12. A modified version of Low-Level Component Architecture with the file name ```12_Data_Preparation_LLD_Clean.png```
 
 A two-page architecture overview PDF is also provided.
 
