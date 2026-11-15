@@ -1,4 +1,4 @@
-# Fraud Risk Monitor — AIOps-Based Fraud Detection and Monitoring System
+# Fraud Risk Monitor — Fraud Detection and Monitoring System
 
 An end-to-end machine learning application for detecting potentially fraudulent credit card transactions, supported by data engineering, experiment tracking, model deployment, automated testing, monitoring and alerting.
 
