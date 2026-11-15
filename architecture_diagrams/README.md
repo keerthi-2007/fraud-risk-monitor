@@ -28,7 +28,7 @@ The component diagram separates FastAPI routes, the approved in-memory MLflow mo
 
 **Placement:** LLD — component design  
 **Caption:** Figure 2. Low-level component architecture, including API, persistence and monitoring boundaries.  
-**Files:** `02_LLD_Component_Architecture.svg`, `02_LLD_Component_Architecture.png`
+**Files:** `02_LLD_Component_Architecture.svg`, `02_LLD_Component_Architecture.png`, `12_Data_Preparation_LLD_Clean.png`
 **Relevant source paths to cross-check:** `frontend/app.py`, `frontend/pipeline_client.py`, `backend/main.py`, `backend/feedback_store.py`, `backend/feedback_metrics.py`, `backend/drift_monitor.py`, `backend/pipeline_status.py`
 
 ### 3. DVC Pipeline Dependency DAG
