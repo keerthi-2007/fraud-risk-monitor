@@ -1,160 +1,885 @@
-# FraudGuard - AI-Powered Financial Fraud Detection and Risk Monitoring System
+# Fraud Risk Monitor — AIOps-Based Fraud Detection and Monitoring System
 
-**A local-first educational AI application with AIOps tooling.** Built as original project code, informed by external examples (see `docs/ATTRIBUTION_AND_LIMITATIONS.md`). No cloud platform is required.
+An end-to-end machine learning application for detecting potentially fraudulent credit card transactions, supported by data engineering, experiment tracking, model deployment, automated testing, monitoring and alerting.
 
-> **IMPORTANT: The included dataset and demonstration model are SYNTHETIC. The app is not suitable for production banking or automatic payment blocking. Model scores are not proven calibrated probabilities.**
+The project demonstrates how **Machine Learning and AIOps practices** can be combined to develop an observable and maintainable fraud risk monitoring system.
 
-## What you get
+The application runs locally on an Ubuntu virtual machine using Docker Compose.
 
-- **Frontend:** Streamlit risk dashboard, CSV scoring, export, corrections, pipeline status, model comparison.
-- **Backend:** Separate FastAPI REST service (`/predict`, `/feedback`, `/health`, `/model/info`, `/model/evaluation`, `/pipeline/status`, `/system/overview`, `/metrics`).
-- **ML:** Two candidate classifiers (class-weighted logistic regression, Random Forest), validation PR-AUC model selection, F2 threshold selection, held-out test metrics.
-- **AIOps:** DVC pipeline DAG, MLflow candidate runs, Git + optional Git LFS, optional Ray Data ingestion, Prometheus/Grafana runtime monitoring, local feedback review before retraining.
-- **Packaging:** Slim Python containers in Docker Compose; monitoring services optional for small VMs.
-- **Documentation:** Architecture diagram, HLD, LLD, test plan, user guide, attribution and verification report.
+## 1. Project Overview
 
-## Quick start on Linux VM (recommended path)
+Fraud Risk Monitor uses a machine learning model to analyse transaction features and assign risk scores.
 
-**Requirements:** Linux VM with Python 3.11, `python3.11-venv`, pip, Docker Engine + Docker Compose plugin (to use containers), and Git. Have internet access to install Python/Docker dependencies, even though runtime uses no cloud platform.
+Transactions exceeding the configured decision threshold are flagged for further review.
+
+In addition to fraud prediction, the application implements:
+
+- Data processing and validation
+- Machine learning experiment tracking
+- Model registration and versioning
+- CSV and bulk ZIP transaction scoring
+- Human feedback collection
+- DVC pipeline monitoring
+- Spark data auditing and throughput measurement
+- Feature drift monitoring using PSI
+- Prometheus metrics and alerting
+- Grafana operational dashboards
+- Docker containerisation
+- Automated tests and GitHub Actions CI
+
+**Note:** This is an educational fraud risk monitoring application, not a production banking system. Model scores are uncalibrated and should not be interpreted as confirmed fraud probabilities.
+
+## 2. Technology Stack
+
+| Component | Technology |
+|---|---|
+| Programming Language | Python |
+| Frontend | Streamlit |
+| Backend API | FastAPI, Pydantic |
+| Machine Learning | Scikit-learn |
+| Experiment Tracking | MLflow |
+| Data Pipeline Management | DVC |
+| Data Engineering | Apache Spark / PySpark |
+| Containerisation | Docker, Docker Compose |
+| Application Monitoring | Prometheus |
+| Monitoring Dashboards | Grafana |
+| Container Monitoring | cAdvisor |
+| Alert Management | Prometheus Alert Rules, Alertmanager |
+| Notifications | Local webhook receiver |
+| Testing | Pytest |
+| Continuous Integration | GitHub Actions |
+| Version Control | Git, GitHub |
+
+## 3. Application URLs
+
+All URLs below refer to services running locally on the Ubuntu VM.
+
+They are **not publicly hosted URLs**. The corresponding services must be running before the pages can be accessed.
+
+### Application and Monitoring Services
+
+| Service | URL | Description |
+|---|---|---|
+| Streamlit Application | http://127.0.0.1:8501 | Main fraud risk monitoring application |
+| FastAPI Documentation | http://127.0.0.1:8000/docs | Interactive REST API documentation |
+| FastAPI Health | http://127.0.0.1:8000/health | Backend health and model run information |
+| FastAPI Metrics | http://127.0.0.1:8000/metrics | Prometheus-formatted application metrics |
+| MLflow | http://127.0.0.1:5000 | ML experiments and Model Registry |
+| Prometheus | http://127.0.0.1:9091 | Metrics monitoring |
+| Prometheus Targets | http://127.0.0.1:9091/targets | Monitored service availability |
+| Prometheus Alerts | http://127.0.0.1:9091/alerts | Alert rules and firing alerts |
+| Prometheus Query | http://127.0.0.1:9091/query | PromQL queries |
+| Grafana | http://127.0.0.1:3001 | Operational dashboards |
+| Alertmanager | http://127.0.0.1:9093 | Alert management |
+
+### Grafana Dashboards
+
+| Dashboard | URL |
+|---|---|
+| Fraud Operations | http://127.0.0.1:3001/d/fraud-operations/fraud-operations |
+| Container Health | http://127.0.0.1:3001/d/fraud-container-health/container-health |
+| Fraud Risk Monitor | http://127.0.0.1:3001 — select the Fraud Risk Monitor dashboard |
+
+The project also uses internal Docker network services:
+
+- `cadvisor:8080` — container resource metrics
+- `alert-webhook:8085` — alert notification receiver
+
+These internal services are not separately exposed as public browser interfaces.
+
+## 4. Dataset
+
+The project uses the **Credit Card Fraud Detection** dataset, containing anonymised credit card transactions.
+
+**Dataset source:**
+
+https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud
+
+### Dataset Information
+
+| Property | Value |
+|---|---|
+| Total transactions | 284,807 |
+| Fraudulent transactions | 492 |
+| Training records | 170,883 |
+| Validation records | 56,962 |
+| Test records | 56,962 |
+| Model input features | V1–V28 and Amount |
+| Target variable | Class |
+
+The model uses 29 numerical input features. The `Class` column is used as the ground-truth label during training and evaluation, not as a prediction input.
+
+### Dataset Location
+
+The original dataset is not stored in the GitHub repository.
+
+Download it from Kaggle and place it at:
+
+```text
+data/raw/creditcard.csv
+```
+
+The DVC pipeline uses the raw dataset to prepare and create the train, validation and test datasets.
+
+The dataset is highly imbalanced, making metrics such as average precision and recall especially relevant.
+
+## 5. Machine Learning Model
+
+Two model families were evaluated:
+
+- Logistic Regression
+- HistGradientBoosting
+
+The selected model is a **Logistic Regression pipeline** using StandardScaler and balanced class weights.
+
+### Selected Model Information
+
+| Property | Value |
+|---|---|
+| Registered Model | `FraudRiskClassifier` |
+| Model Version | 1 |
+| Algorithm | Logistic Regression |
+| Number of Features | 29 |
+| Scaler | StandardScaler |
+| Class Weight | Balanced |
+| Maximum Iterations | 2000 |
+| Deployment Decision Threshold | 0.87292890258894895 |
+
+### Recorded Evaluation Results
+
+| Metric | Result |
+|---|---|
+| Validation Recall | 85.859% |
+| Fraud Cases Detected in Validation | 85 of 99 |
+| Validation Review Alerts | 307 |
+| Test Average Precision | 0.733082 |
+| Test ROC-AUC | 0.976206 |
+
+The threshold was selected using validation data and subsequently used for final evaluation.
+
+Transactions with scores at or above the decision threshold are classified as `review`. Other transactions are classified as `normal`.
+
+A `review` decision means that further investigation is recommended. It does not indicate confirmed fraud.
+
+## 6. Project Setup and Installation
+
+### Prerequisites
+
+The application was developed and verified in an Ubuntu VM with a Python 3.14 virtual environment.
+
+The main requirements are:
+
+- Ubuntu or another compatible Linux environment
+- Python and `venv`
+- pip
+- Git
+- Docker Engine
+- Docker Compose plugin
+- Project dependencies
+- Credit card fraud dataset
+- Approved MLflow model artifacts for inference
+
+Internet access may be required to download dependencies, Docker images and the original dataset.
+
+### Clone the Repository
 
 ```bash
-unzip FraudGuard_AIOps_Project.zip
-cd fraudguard-aiops
-python3.11 -m venv .venv
+git clone https://github.com/keerthi-2007/fraud-risk-monitor.git
+cd fraud-risk-monitor
+```
+
+If the GitHub repository is private, access is required before cloning.
+
+### Create and Activate a Python Environment
+
+```bash
+python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements-train.txt
 ```
 
-For an all-in-one bootstrap on an Ubuntu-like VM (after installing Python 3.11, Git and Docker Compose), run `bash scripts/setup_vm.sh`. This installs training dependencies, initializes local DVC, trains on the demo dataset if necessary, runs tests and starts two containers. It does **not** start Ray or Grafana by default. You can also follow the individual commands below.
-
-The ZIP may include a **pretrained synthetic demo artifact**, but retrain once inside your VM to ensure identical sklearn versions and prove reproducibility:
+Confirm the Python version:
 
 ```bash
-python -m scripts.generate_demo --rows 3600
-python -m pipeline.run
-python -m pytest -q
+python --version
 ```
 
-If you have the real permitted dataset, save it as `data/raw/creditcard.csv` and rerun the pipeline. The real dataset is **not** included in this ZIP; original data takes precedence over demo data.
+Install dependencies:
 
-### Launch the application (2 containers, minimal stack)
+```bash
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
+```
+
+Additional service-specific dependency specifications are available in:
+
+```text
+requirements-api.txt
+requirements-frontend.txt
+```
+
+### Important: Fresh Clone Requirements
+
+The repository includes source code, configuration and documentation, but does not distribute the original raw dataset or local MLflow database and model artifacts.
+
+A fresh clone therefore needs additional setup before the prediction backend can load the approved model.
+
+The approved model must be reproduced through the documented training and evaluation workflow, or its verified artifacts must be provisioned separately.
+
+The instructions in the next section describe starting an **already configured project environment**, such as the Ubuntu VM used for development and testing.
+
+## 7. Running the Application on Ubuntu
+
+### Step 1 — Open the Project
+
+Open an Ubuntu terminal:
+
+```bash
+cd ~/Documents/fraud-risk-monitor
+source .venv/bin/activate
+```
+
+### Step 2 — Start Docker Services
+
+Start the existing containers:
+
+```bash
+docker compose up -d
+```
+
+When initial image building is required, use:
 
 ```bash
 docker compose up -d --build
 ```
 
-- Dashboard: `http://localhost:8501`
-- Backend docs: `http://localhost:8000/docs`
-- API health: `http://localhost:8000/health`
+The application uses seven Docker services:
 
-Docker ports are bound to `127.0.0.1` on the VM. Use the VM browser, or forward ports over SSH if your VM is headless. For file permissions, ensure `data/feedback/` and `run/` are writable by UID `1000` (default Compose) or export `LOCAL_UID=$(id -u)` and `LOCAL_GID=$(id -g)` before `docker compose up`. On SELinux-enabled systems, bind mounts may also need labeling.
+1. `backend`
+2. `frontend`
+3. `prometheus`
+4. `grafana`
+5. `alertmanager`
+6. `cadvisor`
+7. `alert-webhook`
 
-### Start observability tools only when needed
+### Step 3 — Verify Container Status
 
 ```bash
-docker compose --profile monitoring up -d
+docker compose ps
 ```
 
-- Prometheus: `http://localhost:9090/targets` (backend target should be UP)
-- Grafana: `http://localhost:3000` (`admin` / value of `GRAFANA_ADMIN_PASSWORD`)
-- Included Grafana dashboard: **FraudGuard | Runtime and Fraud Risk**.
+Check that the services are running and that the backend health check reports healthy.
 
-For local demo only, Compose uses an insecure fallback Grafana password. Set a strong `GRAFANA_ADMIN_PASSWORD` in a `.env` file before any network exposure. Monitoring containers add memory/disk overhead.
+If an individual service stopped after a VM restart, it can be started separately.
 
-### DVC / Git / Git LFS (separate roles)
+For example:
 
 ```bash
-bash scripts/bootstrap.sh
-git add .
-git commit -m 'Initial FraudGuard pipeline'
-GIT_COMMIT=$(git rev-parse HEAD) dvc repro
+docker compose start prometheus grafana
+```
+
+### Step 4 — Open Streamlit
+
+Open:
+
+http://127.0.0.1:8501
+
+The frontend provides the fraud prediction and pipeline monitoring interface.
+
+### Step 5 — Open FastAPI
+
+Interactive API documentation:
+
+http://127.0.0.1:8000/docs
+
+API health endpoint:
+
+http://127.0.0.1:8000/health
+
+### Step 6 — Open Prometheus
+
+Open:
+
+http://127.0.0.1:9091
+
+To check monitored services:
+
+http://127.0.0.1:9091/targets
+
+The configured targets include the Fraud Risk API, cAdvisor, Grafana and Prometheus.
+
+### Step 7 — Open Grafana
+
+Open:
+
+http://127.0.0.1:3001
+
+Navigate to the Fraud Risk Monitor dashboard folder to access the operational dashboards.
+
+### Step 8 — Open Alertmanager
+
+Open:
+
+http://127.0.0.1:9093
+
+Alertmanager receives configured Prometheus alerts and routes them to the local webhook receiver.
+
+## 8. Running MLflow
+
+MLflow is used to track machine learning experiments, model parameters, metrics, artifacts and registered models.
+
+The local project uses a SQLite-backed MLflow tracking store.
+
+### Start MLflow UI
+
+Open a separate Ubuntu terminal:
+
+```bash
+cd ~/Documents/fraud-risk-monitor
+source .venv/bin/activate
+
+mlflow ui \
+  --backend-store-uri sqlite:///mlflow.db \
+  --host 127.0.0.1 \
+  --port 5000
+```
+
+Keep the terminal open while using MLflow.
+
+Then open:
+
+http://127.0.0.1:5000
+
+### MLflow Project Information
+
+| Property | Value |
+|---|---|
+| Experiment Name | `fraud-detection-baselines` |
+| Registered Model | `FraudRiskClassifier` |
+| Registered Version | 1 |
+| Selected Model Run ID | `27da3507bddb413bab9cd0a12aeb092a` |
+
+The selected run records model configuration, dataset split identifiers, Git commit information, metrics and model artifacts.
+
+The experiment also contains alternative model runs and final evaluation records.
+
+The MLflow UI command reads an existing tracking database. It does not create the original experiment results or retrain the approved model.
+
+## 9. Streamlit Application Features
+
+### Single CSV Scoring
+
+1. Open Streamlit.
+2. Select **Single CSV**.
+3. Upload a transaction CSV.
+4. Click **Score this CSV**.
+5. View the prediction summary.
+6. Inspect the transaction risk scores.
+7. Download the prediction results.
+
+The application displays the number of processed transactions and the numbers classified as `review` and `normal`.
+
+### Bulk ZIP Upload
+
+1. Open the **Bulk ZIP upload** tab.
+2. Upload a ZIP archive containing transaction CSV files.
+3. Click **Score each file separately**.
+4. Review the results for each input file.
+5. Download the processed outputs.
+
+Each CSV is processed separately.
+
+### Feedback Collection
+
+The application allows users to record a confirmed transaction outcome after reviewing a prediction.
+
+The stored feedback may indicate whether the transaction was:
+
+- `legitimate`
+- `fraud`
+
+Feedback is recorded through the backend and retained for monitoring and analysis.
+
+Feedback submission does not automatically retrain or replace the model.
+
+### Pipeline Overview
+
+The Pipeline Overview tab displays:
+
+- Recorded DVC pipeline status
+- Stage information
+- Spark data audit results
+- Pipeline execution history
+- Recorded stage duration
+- Throughput information
+- Model workflow information
+
+This provides operational visibility without requiring users to run pipeline commands manually.
+
+## 10. FastAPI Backend
+
+FastAPI handles transaction validation, model inference, batch scoring, monitoring and feedback storage.
+
+**API documentation:**
+
+http://127.0.0.1:8000/docs
+
+### Implemented Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/health` | Health check and model run information |
+| POST | `/predict` | Single transaction prediction |
+| POST | `/predict/csv` | Batch CSV scoring |
+| POST | `/feedback` | Store corrected transaction outcome |
+| GET | `/metrics` | Expose Prometheus application metrics |
+| GET | `/monitoring/pipeline-status` | Read recorded pipeline status |
+| POST | `/monitoring/validation-failure` | Record frontend validation failures |
+
+Single-transaction requests require 29 numerical input features.
+
+Batch CSV uploads are validated for the expected schema, valid values, file size and row limits.
+
+The CSV prediction API accepts files up to 50 MiB and 100,000 transaction rows per request.
+
+Selected monitoring and feedback endpoints are protected using configured request tokens.
+
+## 11. DVC Pipeline
+
+DVC manages the data-processing stages and their dependencies.
+
+### Implemented DVC Stages
+
+| Stage | Purpose |
+|---|---|
+| `prepare_data` | Prepare the original dataset |
+| `create_splits` | Generate training, validation and test splits |
+| `spark_audit` | Independently audit raw data using Spark |
+| `build_drift_baseline` | Build reference statistics for drift monitoring |
+
+The Spark audit is an independent stage using the raw dataset.
+
+Model training and final evaluation are controlled MLflow operations outside the DVC dependency graph.
+
+### Inspect the DVC Pipeline
+
+From the project directory:
+
+```bash
+source .venv/bin/activate
+
+dvc status
+```
+
+Display the pipeline DAG:
+
+```bash
 dvc dag
-dvc metrics show
 ```
 
-- **Git:** code and version references (commit hash).
-- **DVC:** data pipeline dependencies, hashed data/model artifacts, local storage under `storage/dvc/`.
-- **Git LFS:** optional `*.onnx`, `*.pt`, `*.bin` assets outside DVC; do **not** track the same model in both DVC and LFS. `git lfs install` is optional and only works when installed.
-- **MLflow:** experiments under local `mlruns/`; each model candidate logs params, metrics and the run ID. Run `mlflow ui --backend-store-uri ./mlruns --host 127.0.0.1 --port 5000` and open `http://localhost:5000`.
-- **Provenance:** export `GIT_COMMIT=$(git rev-parse HEAD)` on training commands to record commit in MLflow and metadata. A DVC lockfile is generated when running `dvc repro`; it is deliberately not fabricated in this distribution.
-
-`python -m pipeline.run` is a first-boot convenience route that uses the same stages as DVC. To demonstrate DVC reproducibility, run **`dvc repro`**, not just the convenience runner.
-
-### Optional Ray ingestion (save VM space by default)
+Inspect dependency and output information:
 
 ```bash
-pip install -r requirements-ray.txt
-DATA_ENGINE=ray python -m pipeline.ingest
-# or when DVC is initialized:
-DATA_ENGINE=ray dvc repro --force ingest
+cat dvc.yaml
 ```
 
-The Ray reader uses `ray.data.read_csv` and records ingestion time and rows/second in `run/pipeline_status.json`. It is opt-in because Ray installs a larger dependency footprint. Do not claim that pandas-mode runs were Ray runs. The current sklearn model step still collects data in memory; this is not a fully streaming fraud analytics system.
-
-### Feedback loop (review-first)
-
-1. In the UI, score transactions and submit an incorrect prediction. It goes to `data/feedback/pending_feedback.csv`.
-2. Inspect proposed corrections: `python -m scripts.review_feedback`.
-3. **Only for transaction labels that a human has verified:** `python -m scripts.review_feedback --approve TRANSACTION_ID`.
-4. Rerun `dvc repro`, evaluate and manually approve the new candidate before using it operationally.
-
-For a local demo, `FEEDBACK_TOKEN` can be set in `.env` and passed to both UI and API; full authentication is beyond this project.
-
-### Tests & pipeline management
+To reproduce the existing DVC processing stages intentionally, after ensuring the required data and dependencies are available:
 
 ```bash
-bash scripts/ci.sh
-python -m scripts.pipeline_console dag
-python -m scripts.pipeline_console status
-python -m scripts.pipeline_console run
-python -m scripts.pipeline_console metrics
+dvc repro
 ```
 
-To enable local pre-commit CI: `git config core.hooksPath .githooks`. For CI that also reruns the DVC DAG: `RUN_DVC_REPRO=1 bash scripts/ci.sh`.
+**Note:** Running `dvc repro` may execute processing stages when dependencies or outputs have changed. It is not necessary merely to view pipeline status.
 
-CLI operations are intentionally restricted to the local VM; there is no anonymous HTTP endpoint for running arbitrary shell commands. The dashboard has a read-only per-stage management screen with refresh, statuses and timings.
+### Spark Audit
 
-## Project layout
+The project includes an Apache Spark data audit.
+
+A recorded successful Spark audit processed **284,807 rows**.
+
+| Measurement | Recorded Result |
+|---|---|
+| Processed Rows | 284,807 |
+| Recorded Execution Duration | Approximately 15.40 seconds |
+| Measured End-to-End Throughput | Approximately 18,496 rows/second |
+
+This throughput measurement includes stage execution overhead and Spark startup, not solely Spark's internal data-processing time.
+
+The recorded execution history and pipeline status snapshot are available through the application's monitoring features.
+
+## 12. Data Drift Monitoring
+
+The system uses **Population Stability Index (PSI)** to measure differences between incoming transaction feature distributions and the reference training distribution.
+
+When a valid CSV contains at least 100 rows, the backend attempts drift analysis.
+
+Drift monitoring is a best-effort operation and does not block successful fraud scoring if monitoring encounters an error.
+
+### High Drift Alert
+
+The configured Prometheus rule `FraudFeatureDriftHigh` evaluates feature-level PSI.
+
+The configured alert threshold is:
 
 ```text
-fraudguard/           settings, schema, drift, FastAPI inference
-pipeline/             ingest, optional Ray reader, split, train, evaluate, report
-frontend/             Streamlit web app
-scripts/              synthetic data, feedback review, bootstrap, audit, console
-infra/                slim Dockerfiles, Prometheus/Grafana configuration
-artifacts/            generated model, evaluation, drift reference and report
-data/                 raw, verified/pending feedback, interim, train/val/test
-mlruns/               MLflow tracking files (generated when MLflow installed)
-docs/                 HLD, LLD, architecture, test plan, user manual
-tests/                automated API, validation, end-to-end pipeline checks
-dvc.yaml              source-of-truth data/ML DAG
-docker-compose.yml    separate frontend/backend, optional monitoring
+PSI > 0.20
 ```
 
-## Honest implementation notes
+The rule also checks that the drift analysis is recent.
 
-- The ZIP includes working source, generated synthetic artifacts and automated tests. The supplied environment can test Python but **does not provide Docker, DVC, MLflow or Ray binaries**, so those parts are *configured but require verification on your VM*.
-- UI and docker-compose are authored but a real-browser UI test and full Docker validation on the target VM are still required. Check `docs/TEST_PLAN.md`.
-- No automatic model retraining is triggered by untrusted feedback; this is intentional.
-- No cardholder data should be uploaded. The original dataset columns are anonymized, not directly interpretable personal financial attributes.
-- Verify external licence terms and disclose AI/external reference use per course policy. See attribution document.
+A high PSI indicates that a feature distribution has shifted. It does not independently establish that predictions are incorrect.
 
-## Instructor rubric crosswalk
+## 13. Prometheus Monitoring
 
-| Evaluation point | Implementation / evidence |
+Prometheus collects operational metrics from the configured scrape targets.
+
+### Prometheus URLs
+
+**Main UI:** http://127.0.0.1:9091
+
+**Targets:** http://127.0.0.1:9091/targets
+
+**Alerts:** http://127.0.0.1:9091/alerts
+
+**Query:** http://127.0.0.1:9091/query
+
+### Monitored Metrics
+
+The application exposes metrics relating to:
+
+- API requests
+- Request duration
+- Transactions scored
+- Review and normal decisions
+- Input validation failures
+- Feature drift
+- Feedback records
+- Container activity and resource usage
+
+### Alert Rules
+
+Five Prometheus alert rules are configured:
+
+- `FraudAPIDown`
+- `FraudHighServerErrors`
+- `FraudHighAPIErrorRate`
+- `FraudFeatureDriftHigh`
+- `FraudDriftMonitoringFailure`
+
+Prometheus evaluates these conditions and routes alerts to Alertmanager.
+
+Alertmanager is configured to deliver notifications to a local webhook receiver.
+
+## 14. Grafana Dashboards
+
+**Grafana UI:**
+
+http://127.0.0.1:3001
+
+The project includes three main dashboards.
+
+### Fraud Operations
+
+Displays fraud scoring and operational metrics, including:
+
+- Transactions processed
+- Transactions flagged for review
+- Normal transactions
+- Review rate
+- Saved feedback
+- Feedback-derived indicators
+- High-drift features
+- Drift analysis counts
+- Drift monitoring failures
+
+### Container Health
+
+Displays:
+
+- Scrape target health
+- Container CPU usage
+- Container memory working set
+- Network received per second
+- Network sent per second
+- Container uptime
+
+The dashboard is configured using metrics available in the local Docker environment.
+
+### Fraud Risk Monitor
+
+Provides additional application and API monitoring visualisations.
+
+Dashboard JSON files are stored in:
+
+```text
+monitoring/grafana/dashboards/
+```
+
+Grafana dashboards are provisioned automatically from the configured files.
+
+## 15. Automated Testing
+
+The project includes automated tests for the main functional and operational components.
+
+### Run the Complete Local Verification
+
+From the project root:
+
+```bash
+source .venv/bin/activate
+
+make check
+```
+
+The verification checks include:
+
+- Python compilation
+- DVC pipeline status
+- Automated Pytest test suite
+
+### Run Pytest Directly
+
+```bash
+python -m pytest tests/ -q
+```
+
+### Recorded Local Verification
+
+**111 automated tests passed.**
+
+The test suite covers:
+
+- API health and predictions
+- CSV validation
+- Drift calculation
+- Model loading
+- Feedback storage
+- Feedback metrics
+- Pipeline status
+- Execution history
+- Spark throughput monitoring
+- API integration
+
+The complete test plan, test cases and verification report are documented in:
+
+`docs/04_test_plan_and_report.md`
+
+Some local integration tests depend on datasets and model artifacts that are not included in the GitHub repository.
+
+## 16. Continuous Integration — GitHub Actions
+
+The project includes a GitHub Actions workflow:
+
+```text
+.github/workflows/ci.yml
+```
+
+The workflow provides portable automated verification and Docker image build checks.
+
+The CI configuration runs tests and build checks without depending on the complete local training environment.
+
+A hosted GitHub Actions workflow run completed successfully.
+
+The repository's **Actions** tab can be used to inspect workflow runs and their results.
+
+**Repository:**
+
+https://github.com/keerthi-2007/fraud-risk-monitor
+
+## 17. Stopping and Restarting Services
+
+### Check Running Containers
+
+```bash
+docker compose ps
+```
+
+### Stop Containers
+
+```bash
+docker compose stop
+```
+
+This stops the services without deliberately deleting persistent Docker volumes.
+
+### Restart Existing Containers
+
+```bash
+docker compose start
+```
+
+### Start All Configured Services
+
+```bash
+docker compose up -d
+```
+
+### Restart Only Monitoring Services
+
+```bash
+docker compose start prometheus grafana
+```
+
+### View Service Logs
+
+For example:
+
+```bash
+docker compose logs --tail=100 backend
+```
+
+Or:
+
+```bash
+docker compose logs --tail=100 prometheus grafana
+```
+
+These commands can be used for basic local troubleshooting.
+
+## 18. Project Structure
+
+```text
+fraud-risk-monitor/
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── backend/
+│   ├── main.py
+│   ├── feedback_store.py
+│   ├── feedback_metrics.py
+│   ├── feedback_monitor.py
+│   ├── drift_monitor.py
+│   ├── pipeline_status.py
+│   └── Dockerfile
+├── frontend/
+│   ├── app.py
+│   ├── pipeline_client.py
+│   └── Dockerfile
+├── scripts/
+│   ├── clean_dataset.py
+│   ├── create_splits.py
+│   ├── spark_audit.py
+│   ├── train_baselines.py
+│   ├── evaluate_final.py
+│   ├── build_drift_baseline.py
+│   ├── build_pipeline_status.py
+│   └── run_pipeline_stage.py
+├── monitoring/
+│   ├── grafana/
+│   ├── alertmanager/
+│   ├── alerts/
+│   ├── webhook/
+│   └── prometheus.yml
+├── tests/
+├── docs/
+│   ├── 01_system_architecture.md
+│   ├── 02_high_level_design.md
+│   ├── 03_low_level_design_api.md
+│   ├── 04_test_plan_and_report.md
+│   ├── 05_user_manual.md
+│   └── screenshots/
+├── architecture_diagrams/
+├── compose.yaml
+├── dvc.yaml
+├── dvc.lock
+├── MLproject
+├── Makefile
+├── requirements.txt
+├── requirements-api.txt
+├── requirements-dev.txt
+├── requirements-frontend.txt
+└── README.md
+```
+
+Additional project files and generated data are created in the configured local environment.
+
+## 19. Architecture Documentation
+
+The project includes five primary documentation files.
+
+| Document | File |
 |---|---|
-| User-friendly UI | `frontend/app.py`, `docs/USER_MANUAL.md` |
-| Pipeline visualization | Pipeline control page, `run/pipeline_status.json`, `dvc dag` |
-| HLD, LLD, architecture | `docs/HLD.md`, `docs/LLD.md`, `docs/architecture.png` |
-| Tests + acceptance criteria | `tests/`, `docs/TEST_PLAN.md`, `docs/TEST_REPORT.md` |
-| Distributed processing | `pipeline/ray_data.py` + explicit `DATA_ENGINE=ray` demonstration |
-| DVC DAG + CI | `dvc.yaml`, `scripts/ci.sh`, optional `.githooks/pre-commit`, `scripts/pipeline_console.py` |
-| Version control | Git bootstrap + `.gitattributes` LFS guidance |
-| MLflow experiments | `pipeline/train.py` logs candidate run IDs, params, artifacts |
-| Monitoring and visualization | `/metrics`, `infra/prometheus.yml`, Grafana dashboard JSON |
-| Packaging | Dockerfiles, Docker Compose, separate services, local ports |
+| System Architecture | `docs/01_system_architecture.md` |
+| High-Level Design | `docs/02_high_level_design.md` |
+| Low-Level Design and API Specification | `docs/03_low_level_design_api.md` |
+| Test Plan and Test Report | `docs/04_test_plan_and_report.md` |
+| User Manual | `docs/05_user_manual.md` |
 
-## Attribution
+### Architecture Diagrams
 
-See `docs/ATTRIBUTION_AND_LIMITATIONS.md`. No original senior/Kaggle code is copied into this package. These resources were used to understand the educational assignment and compare approaches; respective rights remain with the authors.
+The `architecture_diagrams/` folder contains the visual system designs.
+
+These include:
+
+1. High-Level System Architecture
+2. Low-Level Component Architecture
+3. DVC Pipeline DAG
+4. CSV Prediction Sequence
+5. Feedback Sequence
+6. Monitoring Architecture
+7. Docker Deployment
+8. Data Flow Diagram — Level 0
+9. Data Flow Diagram — Level 1
+10. API Interaction
+11. End-to-End AIOps Workflow
+
+A two-page architecture overview PDF is also provided.
+
+## 20. Project Screenshots
+
+Screenshots of the working application and monitoring tools are organised under:
+
+```text
+docs/screenshots/
+├── mlflow/
+├── streamlit_app/
+├── prometheus/
+└── Grafana_dashboards/
+```
+
+These screenshots document:
+
+- Streamlit fraud prediction and batch scoring
+- Streamlit feedback and pipeline overview
+- MLflow experiments, metrics and Model Registry
+- Prometheus scrape targets and alert rules
+- Prometheus data drift alerts
+- Grafana fraud operations metrics
+- Grafana container monitoring
+
+The screenshots provide evidence of the locally executed application and monitoring stack.
+
+## 21. Reproducibility and Limitations
+
+### Reproducibility
+
+The repository contains the application code, DVC pipeline definition, tests, configurations, documentation and CI workflow.
+
+MLflow records include model parameters, metrics, artifacts, run identifiers and training metadata.
+
+However, the original dataset and local MLflow model artifacts are not published in GitHub.
+
+Therefore, cloning the repository alone does not immediately provide the same trained and deployed model.
+
+A new environment needs the original dataset, installed dependencies, environment settings and approved model artifacts before the complete application can be reproduced.
+
+### Limitations
+
+- The application is intended for educational and research demonstration.
+- Model risk scores are not calibrated fraud probabilities.
+- Flagged transactions require human review.
+- Feedback is not automatically used for retraining.
+- The current deployment runs locally rather than on a public cloud platform.
+- Monitoring alerts indicate operational conditions and do not independently establish model accuracy.
+- The system has not been validated for live banking operations or automatic transaction blocking.
+
+## 22. Conclusion
+
+Fraud Risk Monitor demonstrates the integration of machine learning with operational monitoring and data pipeline management.
+
+The application combines **Streamlit, FastAPI, Scikit-learn, DVC, MLflow, Apache Spark, Docker, Prometheus, Grafana and GitHub Actions** into one locally deployed system.
+
+It provides fraud risk scoring, recorded pipeline execution information, experiment tracking, automated testing, drift monitoring, feedback capture and operational dashboards.
+
+The project illustrates how AIOps practices can improve the observability, traceability and maintainability of an applied machine learning system.
