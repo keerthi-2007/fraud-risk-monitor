@@ -1,8 +1,6 @@
 # AIOps Fraud Risk Monitor
 ## High-Level Design Document
 
-**Version:** 1.0
-**Date:** 14 November 2026
 **Project:** AIOps Fraud Risk Monitor
 
 ---
