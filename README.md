@@ -91,9 +91,27 @@ These internal services are not separately exposed as public browser interfaces.
 
 The project uses the **Credit Card Fraud Detection** dataset, containing anonymised credit card transactions.
 
-**Dataset source:**
+### Dataset Source
 
+The project uses the real Credit Card Fraud Detection dataset developed by the ULB Machine Learning Group.
+
+**Primary source (used in this project):**
+https://www.openml.org/d/1597
+
+**Alternative source (Kaggle):**
 https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud
+
+The dataset was downloaded using Scikit-learn's `fetch_openml` function through `scripts/fetch_dataset.py`.
+
+To download the dataset in a new environment:
+
+```bash
+python -m scripts.fetch_dataset
+```
+
+The dataset is stored locally at `data/raw/creditcard.csv`.
+
+It contains 284,807 transactions, including 492 fraudulent cases. The prediction model uses the anonymised features V1–V28 and Amount. The Class column contains the fraud labels.
 
 ### Dataset Information
 
