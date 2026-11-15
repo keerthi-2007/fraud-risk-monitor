@@ -1,8 +1,5 @@
 # AIOps Fraud Risk Monitor
 ## Test Plan, Test Cases and Test Report
-
-**Version:** 1.0
-**Date:** 14 November 2026
 **Test framework:** pytest 9.2.0
 **Environment:** Ubuntu VM, Python 3.14.4
 
