@@ -131,7 +131,7 @@ The model uses 29 numerical input features. The `Class` column is used as the gr
 
 The original dataset is not stored in the GitHub repository.
 
-Download it from Kaggle and place it at:
+Download it and place it at:
 
 ```text
 data/raw/creditcard.csv
