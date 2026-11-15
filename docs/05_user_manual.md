@@ -295,9 +295,9 @@ Important precautions:
 The application is an academic demonstration
 using historical transaction data.
 
-## 13. Demonstration Walkthrough
+## 13. Getting Started: Step-by-Step Guide
 
-A simple classroom demonstration can follow
+A simple demonstration can follow
 this sequence:
 
 1. Open http://localhost:8501.
@@ -305,17 +305,18 @@ this sequence:
 3. Open the Single CSV tab.
 4. Upload a valid transaction CSV.
 5. Click Score this CSV.
-6. Show rows processed and review counts.
-7. Explain the prediction preview.
-8. Download the scored results if required.
-9. Demonstrate the feedback form using a
+6. You can also use a zip folder to score multiple csv's at a time and provide feedback if you are sure about any of the transactions.
+7. Show rows processed and review counts.
+8. Explain the prediction preview.
+9. Download the scored results if required.
+10. Demonstrate the feedback form using a
    confirmed outcome, if appropriate.
-10. Open the Pipeline Overview tab.
-11. Show the four DVC stages.
-12. Show Spark audit information.
-13. Show the recorded execution duration
+11. Open the Pipeline Overview tab.
+12. Show the four DVC stages.
+13. Show Spark audit information.
+14. Show the recorded execution duration
     and measured throughput.
-14. Explain that monitoring and feedback
+15. Explain that monitoring and feedback
     do not automatically retrain the model.
 
 Use prepared, authorised demonstration data.
