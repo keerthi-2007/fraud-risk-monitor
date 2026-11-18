@@ -53,6 +53,21 @@ jobs:
             tests/test_spark_throughput.py \
             -q
 
+
+      - name: Test feedback retraining and model promotion
+        run: |
+          python -m pytest \
+            tests/test_auto_retrain.py \
+            tests/test_auto_retrain_approval.py \
+            tests/test_auto_promotion.py \
+            tests/test_deploy_candidate.py \
+            tests/test_isolated_retraining_e2e.py \
+            tests/test_retraining_auto_deploy.py \
+            tests/test_retraining_cycle.py \
+            tests/test_rollback_env_snapshot.py \
+            tests/test_retraining_status_api.py \
+            -q
+
   docker-build:
     name: Docker image build verification
     runs-on: ubuntu-latest

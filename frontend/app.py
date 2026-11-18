@@ -7,7 +7,7 @@ import requests
 import streamlit as st
 import os
 from datetime import datetime, timezone
-from pipeline_client import fetch_pipeline_status
+from pipeline_client import fetch_pipeline_status, fetch_retraining_status
 
 API_URL = os.getenv("FRAUD_API_URL", "http://127.0.0.1:8000").rstrip("/")
 FEATURE_COLUMNS = [f"V{i}" for i in range(1, 29)] + ["Amount"]
@@ -1118,7 +1118,95 @@ with pipeline_tab:
             "This is a saved pipeline snapshot, not a live job monitor. "
             "Recorded execution history and measured throughput are shown "
             "when available. Only runs captured by the local stage runner "
-            "appear here. Feedback does not trigger automatic retraining."
+            "appear here. Feedback-triggered candidate retraining runs separately from DVC."
+        )
+
+    st.markdown("#### Automatic Feedback Retraining")
+    st.caption(
+        "The background worker checks approved transaction feedback "
+        "and trains candidate models separately from the DVC pipeline."
+    )
+
+    try:
+        retraining = fetch_retraining_status(
+            API_URL,
+            os.getenv("MONITORING_TOKEN"),
+        )
+    except (requests.RequestException, ValueError):
+        st.info(
+            "Retraining monitoring is not available yet. "
+            "Prediction and feedback services are unaffected."
+        )
+    else:
+        received = retraining["feedback_received"]
+        unapproved = retraining["not_approved"]
+        eligible = retraining["eligible"]
+        required = retraining["required_feedback"]
+        fraud = retraining["eligible_fraud"]
+        legitimate = retraining["eligible_legitimate"]
+        per_class = retraining["required_per_class"]
+
+        with st.container(border=True):
+            col1, col2, col3 = st.columns(3)
+
+            col1.metric("Feedback received", received)
+            col2.metric("Awaiting approval", unapproved)
+            col3.metric(
+                "Eligible for retraining",
+                f"{eligible} / {required}",
+            )
+
+            st.progress(
+                min(eligible / required, 1.0),
+                text=(
+                    f"Retraining eligibility: "
+                    f"{eligible} of {required} records"
+                ),
+            )
+
+            st.caption(
+                f"Eligible fraud: {fraud} | "
+                f"Eligible legitimate: {legitimate} | "
+                f"Minimum required per class: {per_class}"
+            )
+
+            if retraining["threshold_met"]:
+                st.success(
+                    "Feedback requirements met. Candidate retraining "
+                    "is eligible to run; this does not confirm "
+                    "training or promotion has completed."
+                )
+            else:
+                st.info(
+                    "Waiting for enough independently approved, "
+                    "eligible feedback."
+                )
+
+            checked_at = retraining["checked_at"]
+            st.caption(f"Last feedback check (UTC): {checked_at}")
+
+            try:
+                checked_time = datetime.fromisoformat(
+                    checked_at.replace("Z", "+00:00")
+                )
+                age = (
+                    datetime.now(timezone.utc) - checked_time
+                ).total_seconds()
+
+                if age > 180:
+                    st.warning(
+                        "Retraining status is over three minutes old. "
+                        "The background worker may need attention."
+                    )
+            except ValueError:
+                st.warning(
+                    "Retraining status timestamp could not be parsed."
+                )
+
+        st.caption(
+            "Monitoring counts do not confirm that a new model "
+            "has been trained or deployed. "
+            "Automatic deployment is disabled by default."
         )
 
     st.markdown("#### Deployment")

@@ -13,6 +13,7 @@ from backend import feedback_store
 from backend.feedback_store import router as feedback_router
 from backend.feedback_monitor import refresh_feedback_metrics
 from backend.pipeline_status import router as pipeline_status_router
+from backend.retraining_status import router as retraining_status_router
 from backend.drift_monitor import load_baseline, detect_drift_from_baseline
 
 import mlflow
@@ -207,6 +208,7 @@ async def observe_http_requests(request, call_next):
 
 app.include_router(feedback_router)
 app.include_router(pipeline_status_router)
+app.include_router(retraining_status_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
