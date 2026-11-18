@@ -1,0 +1,9 @@
+# Persistent model selection for Fraud Risk Monitor.
+# Active values can be supplied through the local, Git-ignored .env file.
+
+services:
+  backend:
+    environment:
+      MODEL_URI: "${ACTIVE_MODEL_URI:-models:/FraudRiskClassifier/1}"
+      EVALUATION_RUN_ID: "${ACTIVE_EVALUATION_RUN_ID:-008277161614417d8da7e13727013676}"
+      DECISION_THRESHOLD: "${ACTIVE_DECISION_THRESHOLD:-0.87292890258894895}"
