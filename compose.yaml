@@ -36,7 +36,7 @@ services:
       dockerfile: mlflow_serving/Dockerfile
     environment:
       MLFLOW_TRACKING_URI: sqlite:////app/mlflow.db
-      MLFLOW_MODEL_URI: "${ACTIVE_MODEL_URI:-models:/FraudRiskClassifier/1}"
+      MLFLOW_MODEL_URI: "${MLFLOW_SERVE_MODEL_URI:-runs:/27da3507bddb413bab9cd0a12aeb092a/model}"
     volumes:
       - ./mlflow.db:/app/mlflow.db
       - ./mlartifacts:/home/ariro/Documents/fraud-risk-monitor/mlartifacts:ro
