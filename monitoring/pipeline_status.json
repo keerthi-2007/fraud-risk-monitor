@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-11-18T11:36:57.938487+00:00",
+  "generated_at": "2026-11-18T13:50:26.410205+00:00",
   "pipeline_tool": "DVC",
   "overall_up_to_date": true,
   "dvc_status": {},
@@ -39,6 +39,17 @@
       "up_to_date": true
     },
     {
+      "name": "spark_transform",
+      "command": "python scripts/spark_transform.py",
+      "dependencies": [
+        "data/raw/creditcard.csv",
+        "requirements.txt",
+        "scripts/spark_transform.py"
+      ],
+      "recorded_in_lock": true,
+      "up_to_date": true
+    },
+    {
       "name": "build_drift_baseline",
       "command": "python -m scripts.build_drift_baseline",
       "dependencies": [
@@ -46,6 +57,30 @@
         "scripts/build_drift_baseline.py",
         "scripts/drift_detector.py",
         "requirements.txt"
+      ],
+      "recorded_in_lock": true,
+      "up_to_date": true
+    },
+    {
+      "name": "eda",
+      "command": "python scripts/run_eda.py",
+      "dependencies": [
+        "data/raw/creditcard.csv",
+        "requirements.txt",
+        "scripts/run_eda.py"
+      ],
+      "recorded_in_lock": true,
+      "up_to_date": true
+    },
+    {
+      "name": "train_baselines",
+      "command": "python scripts/train_baselines.py",
+      "dependencies": [
+        "data/processed/splits/train.csv",
+        "data/processed/splits/validation.csv",
+        "data/processed/splits/split_manifest.json",
+        "requirements.txt",
+        "scripts/train_baselines.py"
       ],
       "recorded_in_lock": true,
       "up_to_date": true
