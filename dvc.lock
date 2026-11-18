@@ -33,8 +33,8 @@ stages:
       size: 3407
     - path: scripts/create_splits.py
       hash: md5
-      md5: c9f56fdff1c05da8d6f2e601317b9b25
-      size: 3462
+      md5: 29d9456d58fde7980f7e475dde1b9bc9
+      size: 3443
     outs:
     - path: data/processed/splits
       hash: md5
@@ -78,10 +78,101 @@ stages:
       size: 1963
     - path: scripts/drift_detector.py
       hash: md5
-      md5: 9f98d52a35ff6e9cfb8f240b528dc4e2
-      size: 2974
+      md5: 182281c779af85cb56c66b3ab463a6d9
+      size: 2954
     outs:
     - path: monitoring/drift_baseline.json
       hash: md5
       md5: 454eca6810420cc81dcbaed3a9a58e3f
       size: 15339
+  eda:
+    cmd: python scripts/run_eda.py
+    deps:
+    - path: data/raw/creditcard.csv
+      hash: md5
+      md5: 2f36adfb0641c7c369bf19d7c9eb748d
+      size: 148416956
+    - path: requirements.txt
+      hash: md5
+      md5: 4eeba27c473d19d0980b5b520548c354
+      size: 3407
+    - path: scripts/run_eda.py
+      hash: md5
+      md5: dcfab10a61dc3e0155882a8a5903db95
+      size: 5744
+    outs:
+    - path: data/reports/eda_amount_by_class.png
+      hash: md5
+      md5: b48779eb9def18e95042555710f9cb0b
+      size: 30084
+    - path: data/reports/eda_class_balance.png
+      hash: md5
+      md5: 97900a078be010c748ecf8b4c87e7f32
+      size: 25468
+    - path: data/reports/eda_correlations.png
+      hash: md5
+      md5: 5f650416b9f9c9579bf63a70cd2f096a
+      size: 84090
+    - path: data/reports/eda_duplicate_groups.png
+      hash: md5
+      md5: a7d54604fcd9c8469d962ea56024c0c4
+      size: 34378
+    - path: data/reports/eda_feature_distributions.png
+      hash: md5
+      md5: 8139321cd1793eb9df908af55800653d
+      size: 269770
+    - path: data/reports/eda_summary.md
+      hash: md5
+      md5: a2f60bc24fbee74c652de42b46b20e00
+      size: 1235
+  train_baselines:
+    cmd: python scripts/train_baselines.py
+    deps:
+    - path: data/processed/splits/split_manifest.json
+      hash: md5
+      md5: 10793a8b642e428a3df739301e8c3e0d
+      size: 1133
+    - path: data/processed/splits/train.csv
+      hash: md5
+      md5: f857e638b5a706559ec45fe0eb06e561
+      size: 89049260
+    - path: data/processed/splits/validation.csv
+      hash: md5
+      md5: c7647e9128144e0ec6593b21fdd74886
+      size: 29684757
+    - path: requirements.txt
+      hash: md5
+      md5: 4eeba27c473d19d0980b5b520548c354
+      size: 3407
+    - path: scripts/train_baselines.py
+      hash: md5
+      md5: 05e8ec1a75274d87ebc729f179e5e694
+      size: 10599
+    params:
+      params.yaml:
+        train:
+          reference_threshold: 0.5
+          logistic_regression:
+            class_weight: balanced
+            max_iter: 2000
+            random_state: 42
+          hist_gradient_boosting:
+            class_weight: balanced
+            learning_rate: 0.1
+            max_iter: 150
+            max_leaf_nodes: 31
+            l2_regularization: 1.0
+            random_state: 42
+          feature_importance:
+            sample_rows: 20000
+            n_repeats: 3
+            random_state: 42
+    outs:
+    - path: metrics/feature_importance.json
+      hash: md5
+      md5: 05270927ba4680827b049a74989dbe78
+      size: 2635
+    - path: metrics/train_metrics.json
+      hash: md5
+      md5: fe10a4c792786b61fdfcb0769bed3a14
+      size: 927

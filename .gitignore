@@ -22,3 +22,7 @@ data/feedback/pending_feedback.csv
 !data/feedback/verified_feedback.csv
 mlflow.db*
 mlartifacts/
+
+data/openml_cache/
+monitoring/notifications/
+/monitoring/pipeline_executions.jsonl

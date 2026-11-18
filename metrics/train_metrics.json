@@ -1,0 +1,23 @@
+{
+  "git_commit": "ce3c37d60c3cb81645634a81452db8ce7a1c115b",
+  "models": {
+    "logistic_regression": {
+      "mlflow_run_id": "0bc6fcb32ee741ef8345baa2c0427241",
+      "validation_average_precision": 0.6907488364675703,
+      "validation_roc_auc": 0.9861921360874986,
+      "validation_precision_at_0_5": 0.06496350364963503,
+      "validation_recall_at_0_5": 0.898989898989899,
+      "validation_f1_at_0_5": 0.1211708645336964,
+      "validation_alert_rate_at_0_5": 0.02405112180049858
+    },
+    "hist_gradient_boosting": {
+      "mlflow_run_id": "1fb65ba5255d4915b11cde67612f352b",
+      "validation_average_precision": 0.7264974009717363,
+      "validation_roc_auc": 0.9580526436302601,
+      "validation_precision_at_0_5": 0.43455497382198954,
+      "validation_recall_at_0_5": 0.8383838383838383,
+      "validation_f1_at_0_5": 0.5724137931034483,
+      "validation_alert_rate_at_0_5": 0.0033531126013833785
+    }
+  }
+}

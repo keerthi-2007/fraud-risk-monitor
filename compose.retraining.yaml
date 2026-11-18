@@ -1,0 +1,9 @@
+# Optional deployment configuration for approved retrained models.
+# Does not affect normal: docker compose up -d
+
+services:
+  backend:
+    environment:
+      MODEL_URI: ${PROMOTED_MODEL_URI:?Model URI required}
+      EVALUATION_RUN_ID: ${PROMOTED_EVALUATION_RUN_ID:?Evaluation run required}
+      DECISION_THRESHOLD: ${PROMOTED_DECISION_THRESHOLD:?Threshold required}

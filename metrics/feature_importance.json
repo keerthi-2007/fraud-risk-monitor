@@ -1,0 +1,106 @@
+{
+  "logistic_regression": [
+    {
+      "feature": "Amount",
+      "importance_mean": 0.15748367657433726,
+      "importance_std": 0.0081610609577444
+    },
+    {
+      "feature": "V14",
+      "importance_mean": 0.08322259090676705,
+      "importance_std": 0.004965965088102268
+    },
+    {
+      "feature": "V2",
+      "importance_mean": 0.05353627512778836,
+      "importance_std": 0.003200899140152809
+    },
+    {
+      "feature": "V17",
+      "importance_mean": 0.02903163742120903,
+      "importance_std": 0.003175543363220289
+    },
+    {
+      "feature": "V12",
+      "importance_mean": 0.027731181821968615,
+      "importance_std": 0.004458689417911642
+    },
+    {
+      "feature": "V10",
+      "importance_mean": 0.023820693204734827,
+      "importance_std": 0.0017025002267981716
+    },
+    {
+      "feature": "V1",
+      "importance_mean": 0.013803320619966216,
+      "importance_std": 0.0041378532025719336
+    },
+    {
+      "feature": "V16",
+      "importance_mean": 0.01310679417268897,
+      "importance_std": 0.004066820899455211
+    },
+    {
+      "feature": "V7",
+      "importance_mean": 0.008758185332058447,
+      "importance_std": 0.0030872801358229696
+    },
+    {
+      "feature": "V4",
+      "importance_mean": 0.00795291606422118,
+      "importance_std": 0.004410355714066916
+    }
+  ],
+  "hist_gradient_boosting": [
+    {
+      "feature": "V14",
+      "importance_mean": 0.2805870264299481,
+      "importance_std": 0.024181713080311848
+    },
+    {
+      "feature": "V10",
+      "importance_mean": 0.12872237799895692,
+      "importance_std": 0.026203896675327378
+    },
+    {
+      "feature": "V12",
+      "importance_mean": 0.08212614234556555,
+      "importance_std": 0.02374199830005383
+    },
+    {
+      "feature": "V4",
+      "importance_mean": 0.030574303885042564,
+      "importance_std": 0.016153589972840665
+    },
+    {
+      "feature": "V11",
+      "importance_mean": 0.010562256766715591,
+      "importance_std": 0.003307965960811709
+    },
+    {
+      "feature": "V18",
+      "importance_mean": 0.007136946094745615,
+      "importance_std": 0.008718429367860643
+    },
+    {
+      "feature": "V7",
+      "importance_mean": 0.005280245323284009,
+      "importance_std": 0.013030519610524479
+    },
+    {
+      "feature": "V9",
+      "importance_mean": 0.004703440290261522,
+      "importance_std": 0.006647633680948279
+    },
+    {
+      "feature": "V3",
+      "importance_mean": 0.003944114222012056,
+      "importance_std": 0.004355850942297107
+    },
+    {
+      "feature": "V17",
+      "importance_mean": 0.0030549944076915616,
+      "importance_std": 0.0002142333554281641
+    }
+  ]
+}
