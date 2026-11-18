@@ -61,9 +61,11 @@ def setup_deployment(monkeypatch, deploy_calls):
     )
 
 
-def test_successful_deployment(monkeypatch):
+def test_successful_deployment(monkeypatch, tmp_path):
     calls = []
     setup_deployment(monkeypatch, calls)
+    (tmp_path / ".env").write_text("MONITORING_TOKEN=test-token\n")
+    monkeypatch.setattr(deployer, "ROOT", tmp_path)
 
     verified = []
     monkeypatch.setattr(
@@ -91,9 +93,11 @@ def test_successful_deployment(monkeypatch):
     ]
 
 
-def test_failed_health_check_triggers_rollback(monkeypatch):
+def test_failed_health_check_triggers_rollback(monkeypatch, tmp_path):
     calls = []
     setup_deployment(monkeypatch, calls)
+    (tmp_path / ".env").write_text("MONITORING_TOKEN=test-token\n")
+    monkeypatch.setattr(deployer, "ROOT", tmp_path)
 
     def verify_health(model_id):
         if model_id == "new-model-run":
