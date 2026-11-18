@@ -285,7 +285,7 @@ Verified evidence includes:
 | Verification | Result |
 |---|---|
 | Local full pytest suite (last recorded) | 147 passed |
-| GitHub Actions hosted CI | Passed on commit `6103977` |
+| GitHub Actions hosted CI | Passed on commit `96b8113` |
 | Targeted deployment tests after CI fixture fix | 5 passed |
 | Backend Docker build | Passed |
 | Frontend Docker build | Passed |
@@ -297,7 +297,7 @@ Verified evidence includes:
 | Prometheus alert rules | 5 valid |
 | Webhook delivery test | Passed |
 
-The GitHub Actions workflow executes portable unit/integration tests and builds both Docker images. The latest reported run for commit `6103977` passed. Local dataset-dependent and deployed-model tests require the developer environment.
+The GitHub Actions workflow executes portable unit/integration tests and builds both Docker images. The verified run for commit `96b8113` passed. Local dataset-dependent and deployed-model tests require the developer environment.
 
 ## 12. Limitations
 

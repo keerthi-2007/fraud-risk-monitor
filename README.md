@@ -705,7 +705,7 @@ The workflow provides portable automated verification and Docker image build che
 
 The CI configuration runs tests and build checks without depending on the complete local training environment.
 
-The latest reported GitHub Actions run for commit `6103977` passed both portable tests and Docker image builds. The CI workflow selects 105 pre-existing portable cases plus the additional retraining, promotion and status API test modules. Six local dataset/model-dependent cases are excluded from hosted CI.
+A verified GitHub Actions run for commit `96b8113` passed both portable tests and Docker image builds. The CI workflow selects 105 pre-existing portable cases plus the additional retraining, promotion and status API test modules. Six local dataset/model-dependent cases are excluded from hosted CI.
 
 The repository's **Actions** tab can be used to inspect workflow runs and their results.
 

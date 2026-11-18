@@ -545,7 +545,7 @@ The completed system has been verified through:
 
 - 147 passing local automated tests in the last recorded full-suite run
 - Five passing targeted deployment tests following the clean-CI fixture fix
-- Successful hosted GitHub Actions test and Docker jobs on commit `6103977`
+- Successful hosted GitHub Actions test and Docker jobs on commit `96b8113`
 - Successful backend and frontend Docker builds
 - Registered MLflow model version 1
 - Four up-to-date DVC stages

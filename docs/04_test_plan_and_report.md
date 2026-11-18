@@ -317,7 +317,7 @@ The DVC data pipeline was previously verified up to date in the local Ubuntu env
 
 The GitHub Actions workflow runs the original **105 portable cases** and the additional retraining/promotion/status API test modules (36 new cases); six local dataset/model-integration cases are not selected for hosted CI. Hosted CI also builds backend and frontend Docker images.
 
-**Latest reported GitHub-hosted result:** commit `6103977` — both *Portable automated tests* and *Docker image build verification* passed (confirmed by the operator from the GitHub Actions page). This is separate from the last recorded 147-test full local run.
+**Verified GitHub-hosted result:** commit `96b8113` — both *Portable automated tests* and *Docker image build verification* passed (confirmed by the operator from the GitHub Actions page). This is separate from the last recorded 147-test full local run.
 
 ## 8. Manual Integration Test Cases
 
@@ -423,7 +423,7 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) contains two jobs:
 1. **Portable automated tests:** the original portable tests plus nine new test modules covering retraining, promotion, rollback and the authenticated status endpoint.
 2. **Docker image build verification:** builds both backend and frontend images.
 
-The operator confirmed a successful GitHub Actions run for the latest published fix, commit `6103977`, on 19 November 2026. A previous run failed because two deployment tests expected an ignored local `.env`; this was corrected to a temporary test fixture. The final passing run does **not** prove a live model promotion or banking production deployment.
+The operator confirmed a successful GitHub Actions run for the verified checkpoint, commit `96b8113`, on 19 November 2026. A previous run failed because two deployment tests expected an ignored local `.env`; this was corrected to a temporary test fixture. The final passing run does **not** prove a live model promotion or banking production deployment.
 
 **CI evidence:** https://github.com/keerthi-2007/fraud-risk-monitor/actions
 
@@ -435,14 +435,14 @@ The 105 original portable cases and 36 new cases are contained within the 147-ca
 |---|---:|---:|---:|---|
 | Full local pytest suite (last recorded) | 147 | 147 | 0 | Ubuntu VM |
 | Targeted deployment tests after fixture correction | 5 | 5 | 0 | Ubuntu VM, subset of full suite |
-| Hosted portable test selection | 141 | 141 | 0 | GitHub Actions green on `6103977` (105 original + 36 new) |
+| Hosted portable test selection | 141 | 141 | 0 | GitHub Actions green on `96b8113` (105 original + 36 new) |
 | Documented manual integration checks | 16 | 16 | 0 | Local Docker/DVC/monitoring verification |
 
 The 141 hosted tests and five targeted deployment tests overlap with the complete local test inventory; they are not extra independent cases. The isolated retraining/promotion tests do not verify live unattended rollout and recovery in a production banking environment.
 
 ## 14. Conclusion
 
-The last recorded full local suite passed 147 automated tests; 16 manual integration checks were also documented. Following a two-test CI fixture correction, the hosted workflow passed on commit `6103977`.
+The last recorded full local suite passed 147 automated tests; 16 manual integration checks were also documented. Following a two-test CI fixture correction, the hosted workflow passed on commit `96b8113`.
 
 The testing covers model inference, input validation,
 feedback, drift monitoring, DVC pipeline monitoring,
