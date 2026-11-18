@@ -299,16 +299,12 @@ Verified evidence includes:
 
 The GitHub Actions workflow executes portable unit/integration tests and builds both Docker images. The verified run for commit `96b8113` passed. Local dataset-dependent and deployed-model tests require the developer environment.
 
-## 12. Limitations
+## 12. Scope and Validation Boundaries
 
-- The system operates on historical transaction data.
-- Model scores are not calibrated fraud probabilities.
-- New candidate retraining is gated by independent approval and a minimum amount of eligible feedback; autonomous live deployment is off by default.
-- Execution history captures only runs using the stage runner.
-- Pipeline snapshots may become stale.
-- Production authentication and network hardening are outside
-  the scope of this local academic deployment.
-- The isolated retraining/promotion tests do not establish production-grade autonomous rollout or rollback reliability.
+- The system uses historical transactions in a local academic deployment; live banking operations were not evaluated.
+- Model scores are uncalibrated, and review decisions do not independently confirm fraud.
+- Candidate retraining requires verified, approved feedback. Automatic live deployment is disabled by default; rollback safeguards were tested in isolation.
+- Pipeline history records runs captured by the stage runner, and saved snapshots can become stale. Production authentication and network hardening have not been established.
 
 ## 13. Conclusion
 

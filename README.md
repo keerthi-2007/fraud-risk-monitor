@@ -901,16 +901,12 @@ Therefore, cloning the repository alone does not immediately provide the same tr
 
 A new environment needs the original dataset, installed dependencies, environment settings and approved model artifacts before the complete application can be reproduced.
 
-### Limitations
+### Scope and Validation Boundaries
 
-- The application is intended for educational and research demonstration.
-- Model risk scores are not calibrated fraud probabilities.
-- Flagged transactions require human review.
-- New candidate retraining requires independent verification, manual approval and sufficient eligible feedback; no model is automatically deployed under the default configuration.
-- Deployment/rollback safeguards have been exercised in isolated tests, not validated as an unattended production banking deployment.
-- The current deployment runs locally rather than on a public cloud platform.
-- Monitoring alerts indicate operational conditions and do not independently establish model accuracy.
-- The system has not been validated for live banking operations or automatic transaction blocking.
+- **Application scope:** The system is evaluated locally using historical transactions, consistent with the assignment's no-cloud requirement. Live banking and automatic transaction blocking were not evaluated.
+- **Prediction interpretation:** Model scores are not calibrated probabilities. Transactions flagged for review require human judgement.
+- **Model lifecycle:** Verified, approved feedback can trigger candidate retraining. Automatic live deployment is disabled by default, and promotion/rollback safeguards were tested in isolation rather than through unattended live rollout.
+- **Monitoring and reproducibility:** Operational and drift monitoring use recorded evidence. Reliable real-world feedback performance needs more confirmed outcomes; reproducing the deployed model also requires the original data and MLflow artifacts.
 
 ### Candidate retraining and deployment controls
 
