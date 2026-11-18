@@ -419,7 +419,11 @@ The stored feedback may indicate whether the transaction was:
 
 Feedback is recorded through the backend and retained for monitoring and analysis.
 
-Feedback submission does not automatically retrain or replace the model.
+Feedback submission alone does not retrain or replace the model. A separate background worker can train a candidate **only after** independent confirmation, reviewer approval, duplicate/leakage screening and minimum feedback eligibility are satisfied. Candidate evaluation and promotion checks are separate from the prediction API; automatic deployment is disabled by default.
+
+### Retraining status in Pipeline Overview
+
+The dashboard reads the token-protected `GET /monitoring/retraining-status` endpoint and displays the latest saved background-worker snapshot, including feedback received, awaiting approval, eligible fraud/legitimate labels and threshold progress. It is **snapshot-based**; opening the page does not train a model. The background worker (`python -m scripts.retraining_cycle --watch`) runs on the host separately from the seven Docker Compose services and four DVC stages.
 
 ### Pipeline Overview
 
@@ -453,6 +457,7 @@ http://127.0.0.1:8000/docs
 | POST | `/feedback` | Store corrected transaction outcome |
 | GET | `/metrics` | Expose Prometheus application metrics |
 | GET | `/monitoring/pipeline-status` | Read recorded pipeline status |
+| GET | `/monitoring/retraining-status` | Read authenticated retraining eligibility snapshot |
 | POST | `/monitoring/validation-failure` | Record frontend validation failures |
 
 Single-transaction requests require 29 numerical input features.
@@ -664,7 +669,7 @@ python -m pytest tests/ -q
 
 ### Recorded Local Verification
 
-**111 automated tests passed.**
+**147 automated tests passed in the last verified local full-suite run.** After the isolated deployment-test fixture correction, all five targeted deployment tests passed.
 
 The test suite covers:
 
@@ -678,6 +683,9 @@ The test suite covers:
 - Execution history
 - Spark throughput monitoring
 - API integration
+- Feedback approval and contamination/duplicate protection
+- Feedback-triggered candidate training and MLflow evaluation
+- Promotion checks, deployment/rollback safeguards and status API
 
 The complete test plan, test cases and verification report are documented in:
 
@@ -697,7 +705,7 @@ The workflow provides portable automated verification and Docker image build che
 
 The CI configuration runs tests and build checks without depending on the complete local training environment.
 
-A hosted GitHub Actions workflow run completed successfully.
+The latest reported GitHub Actions run for commit `6103977` passed both portable tests and Docker image builds. The CI workflow selects 105 pre-existing portable cases plus the additional retraining, promotion and status API test modules. Six local dataset/model-dependent cases are excluded from hosted CI.
 
 The repository's **Actions** tab can be used to inspect workflow runs and their results.
 
@@ -769,6 +777,7 @@ fraud-risk-monitor/
 │   ├── feedback_monitor.py
 │   ├── drift_monitor.py
 │   ├── pipeline_status.py
+│   ├── retraining_status.py
 │   └── Dockerfile
 ├── frontend/
 │   ├── app.py
@@ -782,7 +791,16 @@ fraud-risk-monitor/
 │   ├── evaluate_final.py
 │   ├── build_drift_baseline.py
 │   ├── build_pipeline_status.py
-│   └── run_pipeline_stage.py
+│   ├── run_pipeline_stage.py
+│   ├── approve_feedback.py
+│   ├── auto_retrain.py
+│   ├── retraining_cycle.py
+│   ├── prepare_candidate_evaluation.py
+│   ├── promotion_controller.py
+│   ├── auto_promotion.py
+│   ├── check_promotion_candidate.py
+│   ├── deployment_env.py
+│   └── deploy_candidate.py
 ├── monitoring/
 │   ├── grafana/
 │   ├── alertmanager/
@@ -796,8 +814,8 @@ fraud-risk-monitor/
 │   ├── 03_low_level_design_api.md
 │   ├── 04_test_plan_and_report.md
 │   ├── 05_user_manual.md
-│   └── screenshots/
 ├── architecture_diagrams/
+├── Screenshots/
 ├── compose.yaml
 ├── dvc.yaml
 ├── dvc.lock
@@ -843,7 +861,7 @@ These include:
 11. End-to-End AIOps Workflow
 12. A modified version of Low-Level Component Architecture with the file name ```12_Data_Preparation_LLD_Clean.png```
 
-A two-page architecture overview PDF is also provided.
+A refreshed architecture overview contact sheet (`architecture_diagrams/00__Overview_Contact_Sheet.pdf`) is also provided.
 
 ## 20. Project Screenshots
 
@@ -888,10 +906,15 @@ A new environment needs the original dataset, installed dependencies, environmen
 - The application is intended for educational and research demonstration.
 - Model risk scores are not calibrated fraud probabilities.
 - Flagged transactions require human review.
-- Feedback is not automatically used for retraining.
+- New candidate retraining requires independent verification, manual approval and sufficient eligible feedback; no model is automatically deployed under the default configuration.
+- Deployment/rollback safeguards have been exercised in isolated tests, not validated as an unattended production banking deployment.
 - The current deployment runs locally rather than on a public cloud platform.
 - Monitoring alerts indicate operational conditions and do not independently establish model accuracy.
 - The system has not been validated for live banking operations or automatic transaction blocking.
+
+### Candidate retraining and deployment controls
+
+A host-side retraining watcher checks confirmed, approved feedback by default every 60 seconds. Training becomes eligible with **at least 20** approved, genuinely new, valid records including **at least 3 fraud and 3 legitimate** outcomes. It combines eligible new rows with the existing training split, evaluates on validation data, logs a candidate to MLflow and applies quality/promotion gates. The held-out final test split is **not** used to select candidates. An isolated test validates candidate training and promotion evaluation; live automatic production rollout has **not** been verified. `FRAUD_AUTO_DEPLOY` defaults to disabled, so qualifying candidates never replace the live approved model without explicit opt-in.
 
 ## 22. Conclusion
 

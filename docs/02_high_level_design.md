@@ -2,6 +2,7 @@
 ## High-Level Design Document
 
 **Project:** AIOps Fraud Risk Monitor
+**Version:** 1.1 — 19 November 2026
 
 ---
 
@@ -28,6 +29,9 @@ The application is designed to:
 6. Monitor data drift and application performance.
 7. Display DVC pipeline status and execution history.
 8. Provide observable, containerised deployment.
+9. Support independently approved feedback-driven candidate retraining without automatically replacing the active model.
+
+![System high-level design](../architecture_diagrams/01_HLD_System_Architecture.png)
 
 ## 3. Major Functional Modules
 
@@ -42,6 +46,10 @@ The application is designed to:
 | Prediction service | FastAPI | Serve the approved model |
 | User interface | Streamlit | Accept inputs and display results |
 | Feedback service | FastAPI, JSONL | Store corrected labels |
+| Reviewer approval | Host-side Python CLI, JSONL | Record independent approval and label integrity |
+| Candidate retraining worker | Python, MLflow | Check eligible feedback and train candidate when thresholds are met |
+| Candidate evaluation and promotion | Python, MLflow | Apply validation gates and preserve approved model unless deployment explicitly enabled |
+| Retraining status endpoint | FastAPI, JSON | Serve token-protected aggregate snapshot |
 | Pipeline monitoring | DVC, JSON snapshot | Display pipeline state and recorded runs |
 | Observability | Prometheus, Grafana | Record and visualise metrics |
 | Alert processing | Alertmanager, Python | Route and record notifications |
@@ -119,19 +127,20 @@ Bulk ZIP processing is coordinated by the frontend.
 The backend provides CSV scoring rather than a
 separate ZIP prediction endpoint.
 
-## 8. Feedback Workflow
+## 8. Feedback and Candidate Retraining Workflow
 
-1. A user reviews a prediction.
-2. The user supplies a corrected label.
-3. Streamlit submits feedback through FastAPI.
-4. FastAPI validates the feedback token and payload.
-5. A feedback record is appended to local JSONL storage.
-6. Feedback monitoring aggregates available records.
+![Feedback lifecycle](../architecture_diagrams/05_Feedback_Sequence.png)
 
-Feedback never triggers automatic model retraining.
+1. A reviewer supplies a confirmed outcome through Streamlit, which submits it to the token-protected FastAPI feedback endpoint.
+2. FastAPI validates and stores the feedback in JSONL. Submission **does not** initiate training immediately.
+3. An authorised reviewer independently verifies and approves the outcome using the local approval utility.
+4. A separate host-side watcher filters unapproved, invalid, duplicate and data-overlapping feedback.
+5. When there are **at least 20 eligible** new records including **at least 3 fraud and 3 legitimate**, the watcher can train a candidate with the original training split.
+6. Validation-based quality checks and MLflow candidate evaluation run separately from inference; the held-out test set is excluded from candidate-selection decisions.
+7. Candidate promotion eligibility is checked. **Automatic deployment is disabled by default** and requires explicit opt-in.
+8. The worker publishes aggregate progress to a JSON snapshot read through `GET /monitoring/retraining-status` and shown in Streamlit.
 
-Small or unverified feedback samples must not be
-treated as reliable production performance estimates.
+These operations are separate from the four-stage DVC DAG. An insufficient or unverified feedback sample is never presented as reliable production-model performance.
 
 ## 9. Pipeline Monitoring Workflow
 
@@ -186,6 +195,10 @@ The webhook stores received notifications in JSONL.
 | Streamlit | FastAPI | HTTP REST |
 | FastAPI | MLflow storage | Local database and mounted artifacts |
 | FastAPI | Feedback storage | Local mounted JSONL |
+| Host retraining worker | Feedback and approval JSONL | Local file read + validation |
+| Worker | MLflow | Candidate training, evaluation and gated promotion |
+| Worker | Retraining snapshot | Local JSON file write |
+| Streamlit | Retraining-status endpoint | Token-authenticated HTTP GET |
 | FastAPI | Pipeline snapshot | Read-only mounted JSON |
 | Prometheus | FastAPI | HTTP metrics scraping |
 | Prometheus | cAdvisor | HTTP metrics scraping |
@@ -217,10 +230,9 @@ of executing DVC commands from API requests.
 Drift analysis is best-effort and does not block
 valid prediction requests when monitoring fails.
 
-### Local persistent feedback
+### Local persistent feedback and gated retraining
 
-Feedback is recorded separately from MLflow
-model-training artifacts.
+Feedback is recorded separately from MLflow model-training artifacts. Independent label confirmation, explicit approval, minimum sample and class counts, duplicate/leakage checks and validation quality gates are required before a candidate is eligible. The watcher does not replace the live model by default.
 
 ### Separate monitoring services
 
@@ -239,6 +251,9 @@ The application includes:
 - Backend health checks
 - Error responses for unavailable snapshots
 - Best-effort drift monitoring
+- Independent approval and minimum-feedback gates for retraining
+- Read-only, token-protected retraining-status API
+- Opt-in deployment with health verification and rollback safeguards
 
 The current deployment is intended for a
 local academic demonstration.
@@ -259,8 +274,9 @@ local academic demonstration.
 
 The implementation has demonstrated:
 
-- 111 passing local tests
-- 105 portable CI tests
+- 147 passing tests in the last recorded complete local suite
+- Five passing targeted deployment tests following the clean-CI fixture fix
+- Successful hosted GitHub Actions CI for commit `6103977`
 - Four up-to-date DVC stages
 - Successful Spark audit of 284,807 records
 - Measured throughput of 18,495.64 rows/second
@@ -269,8 +285,7 @@ The implementation has demonstrated:
 - Healthy FastAPI prediction service
 - Successful Alertmanager webhook delivery
 
-GitHub Actions is configured but has not yet
-been executed on a hosted GitHub runner.
+GitHub Actions has run successfully on the hosted runner. Its portable suite excludes local data- and MLflow-artifact-dependent tests.
 
 ## 16. Conclusion
 

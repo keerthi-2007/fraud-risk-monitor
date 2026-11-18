@@ -1,0 +1,44 @@
+digraph G {
+ graph [rankdir=LR, splines=polyline, bgcolor="white", labelloc=t, fontname="DejaVu Sans", fontsize=23, fontcolor="#17243D", pad="0.38", nodesep="0.37", ranksep="0.83", outputorder=edgesfirst];
+ node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=13, fontcolor="#18263D", color="#9AAAC0", fillcolor="#F5F8FC", penwidth=1.5, margin="0.18,0.13"];
+ edge [fontname="DejaVu Sans", fontsize=10, color="#60738F", fontcolor="#475569", arrowsize=0.72, penwidth=1.5];
+label="End-to-End AIOps Lifecycle | Approval-Gated Candidate Loop";
+subgraph cluster_offline { label="DATA / MODEL DEVELOPMENT"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#E7BD87"; style="rounded,dashed"; penwidth=1.2; margin=16;
+data [label="Historical dataset", fillcolor="#FFF2DE", color="#DC9B46"];
+dvc [label="Four-stage DVC pipeline
+Prepare / Split / Audit / Baseline", fillcolor="#FFF2DE", color="#DC9B46"];
+original [label="Controlled original training
++ approved MLflow version", fillcolor="#F0EBFC", color="#9B79D9"];
+
+}
+subgraph cluster_inference { label="LIVE SCORING"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#A2C4EE"; style="rounded,dashed"; penwidth=1.2; margin=16;
+ui [label="Streamlit
+CSV / ZIP scores + overview", fillcolor="#EAF3FF", color="#6495D6"];
+api [label="FastAPI approved model", fillcolor="#E9F8F0", color="#50A47B"];
+decision [label="Risk scores
+Normal / Review", fillcolor="#E9F8F0", color="#50A47B"];
+
+}
+subgraph cluster_learning { label="HUMAN FEEDBACK + CANDIDATE EVALUATION"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#A3D0BA"; style="rounded,dashed"; penwidth=1.2; margin=16;
+feedback [label="Confirmed outcome
+Feedback JSONL", fillcolor="#F3F5F9", color="#98A6BB"];
+approval [label="Independent manual approval", fillcolor="#FFF2DE", color="#DC9B46"];
+elig [label="Worker verifies eligibility
+>=20 total / >=3 per class", fillcolor="#E9F8F0", color="#50A47B"];
+candidate [label="Train + evaluate candidate
+MLflow quality gate", fillcolor="#F0EBFC", color="#9B79D9"];
+deploy [label="Promotion checked
+Automatic deploy OFF", fillcolor="#FFF0F0", color="#C7656C"];
+
+}
+subgraph cluster_obs { label="OPERATIONAL EVIDENCE"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#C1AFE6"; style="rounded,dashed"; penwidth=1.2; margin=16;
+metrics [label="Prometheus + cAdvisor", fillcolor="#F0EBFC", color="#9B79D9"];
+grafana [label="Grafana + Alertmanager
+Notification logs", fillcolor="#F0EBFC", color="#9B79D9"];
+status [label="Read-only pipeline + retraining
+status snapshots", fillcolor="#F3F5F9", color="#98A6BB"];
+
+}
+
+data -> dvc -> original -> api; ui -> api -> decision; decision -> feedback; feedback -> approval -> elig -> candidate -> deploy; dvc -> elig [style=dashed,label="training/validation data"]; deploy -> api [style=dashed,label="explicit opt-in only"]; api -> metrics -> grafana; dvc -> status; elig -> status; status -> ui;
+}

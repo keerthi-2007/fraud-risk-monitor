@@ -1,0 +1,41 @@
+digraph G {
+ graph [rankdir=LR, splines=polyline, bgcolor="white", labelloc=t, fontname="DejaVu Sans", fontsize=23, fontcolor="#17243D", pad="0.38", nodesep="0.37", ranksep="0.83", outputorder=edgesfirst];
+ node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=13, fontcolor="#18263D", color="#9AAAC0", fillcolor="#F5F8FC", penwidth=1.5, margin="0.18,0.13"];
+ edge [fontname="DejaVu Sans", fontsize=10, color="#60738F", fontcolor="#475569", arrowsize=0.72, penwidth=1.5];
+label="FastAPI Endpoint Map | Eight Routes";
+subgraph cluster_public { label="STANDARD / PREDICTION ROUTES"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#92C9AA"; style="rounded,dashed"; penwidth=1.2; margin=16;
+health [label="GET /health
+200: loaded model ID", fillcolor="#E9F8F0", color="#50A47B"];
+pred [label="POST /predict
+29 validated features", fillcolor="#E9F8F0", color="#50A47B"];
+csv [label="POST /predict/csv
+Validated CSV scoring", fillcolor="#E9F8F0", color="#50A47B"];
+metrics [label="GET /metrics
+Prometheus exposition", fillcolor="#E9F8F0", color="#50A47B"];
+
+}
+subgraph cluster_protected { label="TOKEN-PROTECTED ROUTES"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#9CBFEF"; style="rounded,dashed"; penwidth=1.2; margin=16;
+feedback [label="POST /feedback
+X-Feedback-Token", fillcolor="#EAF3FF", color="#6495D6"];
+validation [label="POST /monitoring/validation-failure
+X-Monitoring-Token", fillcolor="#EAF3FF", color="#6495D6"];
+pip [label="GET /monitoring/pipeline-status
+X-Monitoring-Token", fillcolor="#EAF3FF", color="#6495D6"];
+retr [label="GET /monitoring/retraining-status
+X-Monitoring-Token", fillcolor="#EAF3FF", color="#6495D6"];
+
+}
+subgraph cluster_files { label="SOURCE / OUTPUT"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#B7C5D5"; style="rounded,dashed"; penwidth=1.2; margin=16;
+model [label="Approved MLflow model
++ decision threshold", fillcolor="#F3F5F9", color="#98A6BB"];
+fbl [label="Confirmed feedback JSONL", fillcolor="#F3F5F9", color="#98A6BB"];
+snapshot [label="DVC pipeline snapshot", fillcolor="#F3F5F9", color="#98A6BB"];
+rsnapshot [label="Retraining counts JSON
+Read-only, checked schema", fillcolor="#F3F5F9", color="#98A6BB"];
+prom [label="Prometheus", fillcolor="#F0EBFC", color="#9B79D9"];
+
+}
+note [label="Protected routes: 403 on invalid token
+Unavailable/invalid status snapshot: 503",shape=note,fillcolor="#FFF1E4",color="#E3B075"]; note -> retr [style=dotted,arrowhead=none];
+health -> model; pred -> model; csv -> model; feedback -> fbl; pip -> snapshot; retr -> rsnapshot; metrics -> prom; validation -> prom;
+}

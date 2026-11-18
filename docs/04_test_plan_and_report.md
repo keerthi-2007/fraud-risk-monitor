@@ -2,6 +2,7 @@
 ## Test Plan, Test Cases and Test Report
 **Test framework:** pytest 9.2.0
 **Environment:** Ubuntu VM, Python 3.14.4
+**Documentation revision:** 19 November 2026
 
 ---
 
@@ -22,6 +23,8 @@ The testing scope covers:
 - DVC pipeline status and recorded executions
 - Spark throughput measurement
 - Docker deployment and monitoring integration
+- Confirmed-feedback approval, eligibility, candidate training and evaluation
+- Deployment opt-in, rollback protection and retraining status API
 
 ## 3. Testing Approach
 
@@ -48,8 +51,9 @@ operational checks complete successfully.
 
 ## 5. Automated Test Inventory
 
-**Collected cases:** 111
-**Test files:** 17
+**Complete local suite:** 147 cases across 26 test files.
+
+**Original case inventory below:** 111 cases from 17 original test files; the 36 additional retraining/promotion tests are documented after AT-111.
 
 The following case IDs refer directly to pytest test names.
 
@@ -283,41 +287,42 @@ Source: `tests/test_spark_throughput.py`
 | AT-110 | `test_invalid_row_count_has_no_throughput[284807]` |
 | AT-111 | `test_invalid_row_count_has_no_throughput[True]` |
 
+### Additional automated test modules (AT-112 to AT-147)
+
+The newer 36 cases are in the following nine files. The original 111 test-case IDs above are retained to avoid silently renumbering the existing inventory.
+
+| Module | Focus |
+|---|---|
+| `tests/test_auto_retrain.py` | Feedback eligibility and candidate training |
+| `tests/test_auto_retrain_approval.py` | Approval verification and safety checks |
+| `tests/test_auto_promotion.py` | Promotion gate and opt-in behaviour |
+| `tests/test_deploy_candidate.py` | Candidate deployment and rollback |
+| `tests/test_isolated_retraining_e2e.py` | Isolated end-to-end MLflow candidate training/evaluation |
+| `tests/test_retraining_auto_deploy.py` | Disabled-by-default deployment behaviour |
+| `tests/test_retraining_cycle.py` | Host watcher coordination |
+| `tests/test_rollback_env_snapshot.py` | Atomic environment recovery |
+| `tests/test_retraining_status_api.py` | Authentication and status-schema validation |
+
+The exact per-test pytest names can be enumerated from a checkout with `python -m pytest --collect-only -q`; this archival package includes the documentation rather than a fresh full test log.
+
 ## 6. Automated Test Execution Results
 
-**Last verified full-suite result:**
+The last recorded full local pytest verification ran **147 cases**, with **147 passed and 0 failed**. That run reported seven MLflow-related deprecation warnings rather than test failures.
 
-- Tests executed: 111
-- Tests passed: 111
-- Tests failed: 0
-- Dependency warnings: 2
-- DVC status: Data and pipelines are up to date
+After a GitHub-hosted CI failure exposed tests that assumed a local `.env`, the two affected cases in `tests/test_deploy_candidate.py` were corrected to use temporary fixtures. All **five targeted deployment tests then passed locally**; the full local suite was not independently rerun after that fixture-only correction.
 
-The two warnings were MLflow-related dependency
-deprecation warnings rather than test failures.
-
-The results above were verified during the Git
-pre-commit checks for the LLD documentation commit.
+The DVC data pipeline was previously verified up to date in the local Ubuntu environment. The saved dashboard snapshot is not equivalent to live pipeline execution.
 
 ## 7. Portable CI Tests
 
-The GitHub Actions workflow selects 105 portable tests.
+The GitHub Actions workflow runs the original **105 portable cases** and the additional retraining/promotion/status API test modules (36 new cases); six local dataset/model-integration cases are not selected for hosted CI. Hosted CI also builds backend and frontend Docker images.
 
-All 105 passed locally, including a clean-checkout test
-using only Git-tracked files.
-
-Five dataset tests and one deployed-model integration
-test remain part of the complete local test suite.
-
-Both backend and frontend Docker images built locally.
-
-A hosted GitHub Actions run has not yet been verified
-because no Git remote is configured.
+**Latest reported GitHub-hosted result:** commit `6103977` — both *Portable automated tests* and *Docker image build verification* passed (confirmed by the operator from the GitHub Actions page). This is separate from the last recorded 147-test full local run.
 
 ## 8. Manual Integration Test Cases
 
 These cases were performed during project verification.
-They are separate from the 111 automated pytest cases.
+They are separate from the 147 automated pytest cases.
 
 | Test ID | Component | Test procedure | Expected result | Observed result | Status |
 |---|---|---|---|---|---|
@@ -413,65 +418,34 @@ Prometheus alert condition.
 
 ## 12. CI/CD Test Report
 
-The project implements continuous integration using GitHub Actions.
+The GitHub Actions workflow (`.github/workflows/ci.yml`) contains two jobs:
 
-The workflow is defined in `.github/workflows/ci.yml` and contains two jobs:
+1. **Portable automated tests:** the original portable tests plus nine new test modules covering retraining, promotion, rollback and the authenticated status endpoint.
+2. **Docker image build verification:** builds both backend and frontend images.
 
-1. Portable automated tests.
-2. Backend and frontend Docker image builds.
+The operator confirmed a successful GitHub Actions run for the latest published fix, commit `6103977`, on 19 November 2026. A previous run failed because two deployment tests expected an ignored local `.env`; this was corrected to a temporary test fixture. The final passing run does **not** prove a live model promotion or banking production deployment.
 
-### Verification Results
+**CI evidence:** https://github.com/keerthi-2007/fraud-risk-monitor/actions
 
-- 111 automated tests passed in the local Ubuntu environment.
-- 105 portable automated tests passed locally.
-- 105 portable tests passed from Git-tracked content.
-- Backend Docker image built successfully.
-- Frontend Docker image built successfully.
-- GitHub Actions workflow configuration validated.
-- GitHub-hosted CI workflow executed successfully.
-
-### GitHub Actions Evidence
-
-The latest three GitHub Actions executions were verified as successful.
-
-| Run commit | Status |
-|---|---|
-| `7e4a8d3` | SUCCESS |
-| `20a3467` | SUCCESS |
-| `9d7f927` | SUCCESS |
-
-The workflow and execution history are available in the repository's **Actions** tab:
-
-https://github.com/keerthi-2007/fraud-risk-monitor/actions
-
-### Conclusion
-
-The project demonstrates automated testing and Docker build verification through both local checks and GitHub-hosted continuous integration.
-
-The 105 portable CI tests are a subset of the 111 local automated tests and are not counted as additional independent test cases.
+The 105 original portable cases and 36 new cases are contained within the 147-case local suite and must not be added again as independent local tests.
 
 ## 13. Test Summary
 
-| Category | Executed | Passed | Failed |
-|---|---:|---:|---:|
-| Local automated pytest cases | 111 | 111 | 0 |
-| Manual integration checks | 16 | 16 | 0 |
+| Category | Executed | Passed | Failed | Evidence |
+|---|---:|---:|---:|---|
+| Full local pytest suite (last recorded) | 147 | 147 | 0 | Ubuntu VM |
+| Targeted deployment tests after fixture correction | 5 | 5 | 0 | Ubuntu VM, subset of full suite |
+| Hosted portable test selection | 141 | 141 | 0 | GitHub Actions green on `6103977` (105 original + 36 new) |
+| Documented manual integration checks | 16 | 16 | 0 | Local Docker/DVC/monitoring verification |
 
-The 105 portable tests are a subset of the 111 local
-automated cases and are not counted as additional tests.
-
-Two MLflow-related deprecation warnings appeared during
-local testing. They did not cause test failures.
+The 141 hosted tests and five targeted deployment tests overlap with the complete local test inventory; they are not extra independent cases. The isolated retraining/promotion tests do not verify live unattended rollout and recovery in a production banking environment.
 
 ## 14. Conclusion
 
-The verified implementation passed 111 automated tests
-and 16 documented manual integration checks.
+The last recorded full local suite passed 147 automated tests; 16 manual integration checks were also documented. Following a two-test CI fixture correction, the hosted workflow passed on commit `6103977`.
 
 The testing covers model inference, input validation,
 feedback, drift monitoring, DVC pipeline monitoring,
 Spark execution recording, deployment and alert delivery.
 
-The available evidence supports a functioning local
-academic AIOps application. Hosted CI execution and
-production deployment are outside the verified scope.
+The evidence supports a functioning local academic AIOps application with CI verification and isolated feedback-driven candidate retraining tests. Live automatic model deployment remains disabled by default and was not verified as a production rollout.

@@ -2,6 +2,7 @@
 ## Low-Level Design and API Specification
 
 **Implementation:** FastAPI, Python, MLflow, Streamlit
+**Version:** 1.1 — 19 November 2026
 
 ---
 
@@ -24,11 +25,22 @@ a proposed system.
 | backend/feedback_monitor.py | Export feedback metrics to Prometheus |
 | backend/drift_monitor.py | Feature drift analysis |
 | backend/pipeline_status.py | Secure pipeline snapshot retrieval |
+| backend/retraining_status.py | Authenticated, read-only aggregate retraining status |
 | frontend/app.py | Streamlit interface and upload workflows |
-| frontend/pipeline_client.py | Pipeline-status API client |
+| frontend/pipeline_client.py | Pipeline and retraining-status API clients |
+| scripts/approve_feedback.py | Independent confirmed-label approval |
+| scripts/auto_retrain.py | Eligibility, contamination checks, candidate training and status snapshot |
+| scripts/retraining_cycle.py | Host-side watcher orchestration; 60-second default poll |
+| scripts/prepare_candidate_evaluation.py | Candidate evaluation preparation |
+| scripts/promotion_controller.py | Quality-gated promotion eligibility checks |
+| scripts/auto_promotion.py | Opt-in promotion orchestration |
+| scripts/deploy_candidate.py | Deployment verification and rollback |
+| scripts/deployment_env.py | Atomic active-model setting updates and recovery |
 | scripts/drift_detector.py | PSI drift calculations |
 | scripts/build_pipeline_status.py | Generate DVC monitoring snapshot |
 | scripts/run_pipeline_stage.py | Execute and record allowed DVC stages |
+
+![Low-level component diagram](../architecture_diagrams/02_LLD_Component_Architecture.png)
 
 ## 3. Model Configuration
 
@@ -65,6 +77,7 @@ not confirmed fraud.
 | POST | /feedback | JSON acknowledgment |
 | POST | /monitoring/validation-failure | HTTP 204 |
 | GET | /monitoring/pipeline-status | JSON snapshot |
+| GET | /monitoring/retraining-status | JSON eligibility snapshot, token-protected |
 
 ## 5. GET /health
 
@@ -326,7 +339,37 @@ The endpoint does not execute DVC or Spark commands.
 
 The snapshot is mounted read-only in the backend container.
 
-## 11. GET /metrics
+## 11. GET /monitoring/retraining-status
+
+**Purpose:** Return the latest aggregated retraining-worker snapshot without starting any training job.
+
+**Authentication:** `X-Monitoring-Token`. Missing, incorrect or unconfigured tokens return HTTP `403`.
+
+**Success:** HTTP `200`, JSON with:
+
+| Field | Type | Meaning |
+|---|---|---|
+| schema_version | int (1) | Status schema |
+| checked_at | offset-aware ISO-8601 string | Last worker status update |
+| feedback_received | nonnegative int | Received feedback records |
+| not_approved | nonnegative int | Records without valid independent approval |
+| invalid | nonnegative int | Records rejected by eligibility validation |
+| eligible | nonnegative int | Eligible new, approved records |
+| eligible_fraud | nonnegative int | Eligible fraud outcomes |
+| eligible_legitimate | nonnegative int | Eligible legitimate outcomes |
+| required_feedback | positive int | Minimum eligible total, default 20 |
+| required_per_class | positive int | Minimum per class, default 3 |
+| threshold_met | bool | Whether both minimums are satisfied |
+
+The route reads `data/feedback/retraining_monitor.json`, checks schema consistency and returns only the authorised aggregate fields. Missing, malformed or invalid snapshots return HTTP `503`. This endpoint never reads raw feedback identities, approves labels, retrains, evaluates or deploys a model.
+
+![API interaction map](../architecture_diagrams/10_API_Interaction.png)
+
+### Host-side retraining control flow
+
+`approve_feedback.py` verifies reviewer approval; `auto_retrain.py` excludes pre-existing train/validation/test fingerprints and conflicting or unapproved records; `retraining_cycle.py` orchestrates candidate model training, evaluation and promotion checks; `auto_promotion.py` calls `deploy_candidate.py` only with explicit deployment opt-in (`FRAUD_AUTO_DEPLOY=1`). The active model remains unchanged by default. On explicit deployment, `deploy_candidate.py` snapshots `.env`, performs Docker recreation, verifies backend model health and attempts rollback/restoration on failure. The watcher runs on the host, outside Docker Compose and DVC.
+
+## 12. GET /metrics
 
 **Purpose:** Export Prometheus monitoring metrics.
 
@@ -345,7 +388,7 @@ The metrics include:
 
 Prometheus scrapes the backend every 15 seconds.
 
-## 12. Internal Prediction Logic
+## 13. Internal Prediction Logic
 
 The backend maintains the approved model in application state.
 
@@ -365,7 +408,7 @@ For CSV requests, the same model scores all validated rows.
 
 The model is not retrained during inference.
 
-## 13. Drift Detection Design
+## 14. Drift Detection Design
 
 Drift detection uses a saved training-derived baseline.
 
@@ -382,7 +425,7 @@ If drift monitoring fails, the backend records the
 monitoring error without failing an otherwise valid
 prediction request.
 
-## 14. Pipeline Execution Recording
+## 15. Pipeline Execution Recording
 
 The allowlisted DVC stage runner supports:
 
@@ -413,7 +456,7 @@ This growing local file is excluded from Git.
 The snapshot generator can include the latest
 20 recorded executions.
 
-## 15. Storage Design
+## 16. Storage Design
 
 | Storage | Format | Purpose |
 |---|---|---|
@@ -424,20 +467,23 @@ The snapshot generator can include the latest
 | MLflow tracking | SQLite | Experiments and registry metadata |
 | MLflow artifacts | Files | Model and evaluation artifacts |
 | Feedback | JSONL | Corrected-label records |
+| Feedback approvals | JSONL | Independent reviewer approvals |
+| Retraining monitor | JSON | Aggregate worker eligibility snapshot |
+| Retraining state | JSON | Last processed eligible feedback set |
 | Pipeline history | JSONL | Recorded DVC executions |
 | Pipeline snapshot | JSON | Dashboard pipeline information |
 | Alert notifications | JSONL | Received webhook alerts |
 
 Prometheus and Grafana use Docker-managed persistent volumes.
 
-## 16. Authentication and Security
+## 17. Authentication and Security
 
 The backend uses two separate authentication headers:
 
 | Header | Protected operation |
 |---|---|
 | X-Feedback-Token | Feedback submission |
-| X-Monitoring-Token | Pipeline monitoring and validation-failure recording |
+| X-Monitoring-Token | Pipeline status, retraining status and validation-failure recording |
 
 Tokens are supplied using environment configuration
 and compared using constant-time comparison.
@@ -455,7 +501,7 @@ Additional controls include:
 
 The deployment is designed for a local academic environment.
 
-## 17. Error Handling
+## 18. Error Handling
 
 | HTTP code | Meaning |
 |---|---|
@@ -468,12 +514,12 @@ The deployment is designed for a local academic environment.
 | 415 | Unsupported file extension |
 | 422 | Invalid request fields or feature values |
 | 500 | Feedback persistence failure |
-| 503 | Pipeline snapshot unavailable or invalid |
+| 503 | Pipeline or retraining snapshot unavailable or invalid |
 
 FastAPI may also return standard framework-level
 validation errors for malformed requests.
 
-## 18. Monitoring and Alert Processing
+## 19. Monitoring and Alert Processing
 
 Prometheus collects backend and infrastructure metrics.
 
@@ -493,12 +539,13 @@ The webhook:
 5. Appends notification records to JSONL storage.
 6. Returns HTTP 200 when processing succeeds.
 
-## 19. Implementation Verification
+## 20. Implementation Verification
 
 The completed system has been verified through:
 
-- 111 passing local automated tests
-- 105 passing portable CI tests
+- 147 passing local automated tests in the last recorded full-suite run
+- Five passing targeted deployment tests following the clean-CI fixture fix
+- Successful hosted GitHub Actions test and Docker jobs on commit `6103977`
 - Successful backend and frontend Docker builds
 - Registered MLflow model version 1
 - Four up-to-date DVC stages
@@ -508,10 +555,9 @@ The completed system has been verified through:
 - Valid Prometheus alert rules
 - Successful Alertmanager-to-webhook delivery
 
-The hosted GitHub Actions workflow has not yet
-been executed because no Git remote is configured.
+The hosted GitHub Actions workflow has passed; the complete locally verified suite includes six cases that require local datasets and approved model artifacts.
 
-## 20. Conclusion
+## 21. Conclusion
 
 The low-level design implements explicit API contracts,
 validated transaction inputs, controlled model inference,

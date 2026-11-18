@@ -198,6 +198,12 @@ the model used for predictions.
 The final held-out test dataset is not used for automatic
 candidate retraining or promotion decisions.
 
+### Retraining dashboard
+
+The Pipeline Overview also shows the latest status from the background retraining watcher: feedback received, records awaiting approval, eligible fraud and legitimate outcomes, and whether the minimum sample requirements have been reached. The watcher normally checks approximately once per minute. This display reads a saved status snapshot, so it does not itself initiate training. Automatic deployment is off by default.
+
+![Updated feedback sequence](../architecture_diagrams/05_Feedback_Sequence.png)
+
 ## 9. Understanding the Pipeline Overview
 
 Select the Pipeline Overview tab.
@@ -371,8 +377,7 @@ model through the Streamlit interface.
 
 ### Does feedback immediately improve the model?
 
-No. Feedback is recorded for monitoring.
-It does not trigger automatic retraining.
+No. Submitting feedback alone does not immediately change the model. Independently confirmed and approved feedback may later trigger candidate retraining when the eligibility requirements are met; the active model is not automatically replaced by default.
 
 ### Is the pipeline monitor live?
 

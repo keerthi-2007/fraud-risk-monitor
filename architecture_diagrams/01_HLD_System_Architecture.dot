@@ -1,0 +1,44 @@
+digraph G {
+ graph [rankdir=LR, splines=polyline, bgcolor="white", labelloc=t, fontname="DejaVu Sans", fontsize=23, fontcolor="#17243D", pad="0.38", nodesep="0.37", ranksep="0.83", outputorder=edgesfirst];
+ node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=13, fontcolor="#18263D", color="#9AAAC0", fillcolor="#F5F8FC", penwidth=1.5, margin="0.18,0.13"];
+ edge [fontname="DejaVu Sans", fontsize=10, color="#60738F", fontcolor="#475569", arrowsize=0.72, penwidth=1.5];
+label="High-Level System Architecture | Fraud Risk Monitor";
+subgraph cluster_data { label="01   DATA ENGINEERING"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#EEC383"; style="rounded,dashed"; penwidth=1.2; margin=16;
+raw [label="Historical transactions", fillcolor="#FFF2DE", color="#DC9B46"];
+dvc [label="DVC: prepare, split, baseline
++ independent Spark audit", fillcolor="#FFF2DE", color="#DC9B46"];
+
+}
+subgraph cluster_online { label="02   PREDICTION & USER EXPERIENCE"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#8CB6E7"; style="rounded,dashed"; penwidth=1.2; margin=16;
+ui [label="Streamlit
+CSV / ZIP and dashboards", fillcolor="#EAF3FF", color="#6495D6"];
+api [label="FastAPI
+Approved model inference", fillcolor="#E9F8F0", color="#50A47B"];
+live [label="Approved MLflow model
+Version 1", fillcolor="#E9F8F0", color="#50A47B"];
+
+}
+subgraph cluster_feedback { label="03   INDEPENDENT FEEDBACK-DRIVEN LIFECYCLE"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#84C9A3"; style="rounded,dashed"; penwidth=1.2; margin=16;
+fb [label="Corrected outcome
+Feedback JSONL", fillcolor="#F3F5F9", color="#98A6BB"];
+approval [label="Confirmed label +
+manual reviewer approval", fillcolor="#FFF2DE", color="#DC9B46"];
+watcher [label="Host watcher
+20 eligible; 3 per class", fillcolor="#E9F8F0", color="#50A47B"];
+candidate [label="MLflow candidate training
++ validation quality checks", fillcolor="#F0EBFC", color="#9B79D9"];
+gate [label="Promotion eligibility
+Deployment OFF by default", fillcolor="#FFF0F0", color="#C7656C"];
+
+}
+subgraph cluster_observ { label="04   MONITORING"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#B69BE4"; style="rounded,dashed"; penwidth=1.2; margin=16;
+status [label="Retraining status JSON
+Token-protected read API", fillcolor="#F0EBFC", color="#9B79D9"];
+prom [label="Prometheus + cAdvisor", fillcolor="#F0EBFC", color="#9B79D9"];
+viz [label="Grafana + Alertmanager
+Webhook notifications", fillcolor="#F0EBFC", color="#9B79D9"];
+
+}
+
+raw -> dvc; dvc -> live [label="original model lifecycle",style=dashed]; dvc -> watcher [label="train + validation splits",style=dashed]; live -> api; ui -> api [label="predict / read status"]; api -> ui [label="results"]; ui -> fb [label="confirmed label"]; fb -> approval; approval -> watcher; watcher -> candidate [label="eligible data"]; candidate -> gate; gate -> api [style=dashed,label="explicit opt-in ONLY",color="#BD6E6E"]; watcher -> status; status -> api [label="GET monitoring"]; api -> prom [label="/metrics"]; prom -> viz;
+}

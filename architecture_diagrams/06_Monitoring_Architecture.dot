@@ -1,0 +1,36 @@
+digraph G {
+ graph [rankdir=LR, splines=polyline, bgcolor="white", labelloc=t, fontname="DejaVu Sans", fontsize=23, fontcolor="#17243D", pad="0.38", nodesep="0.37", ranksep="0.83", outputorder=edgesfirst];
+ node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=13, fontcolor="#18263D", color="#9AAAC0", fillcolor="#F5F8FC", penwidth=1.5, margin="0.18,0.13"];
+ edge [fontname="DejaVu Sans", fontsize=10, color="#60738F", fontcolor="#475569", arrowsize=0.72, penwidth=1.5];
+label="Operational Monitoring + Feedback Status";
+subgraph cluster_metrics { label="METRIC SOURCES"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#93CDB1"; style="rounded,dashed"; penwidth=1.2; margin=16;
+backend [label="FastAPI /metrics
+Latency, scoring, drift, feedback", fillcolor="#E9F8F0", color="#50A47B"];
+cadvisor [label="cAdvisor
+Container resources", fillcolor="#E9F8F0", color="#50A47B"];
+
+}
+subgraph cluster_ops { label="ALERTING AND DASHBOARDS"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#C0ABE8"; style="rounded,dashed"; penwidth=1.2; margin=16;
+prom [label="Prometheus
+15 s scrape + five rules", fillcolor="#F0EBFC", color="#9B79D9"];
+graf [label="Grafana
+Provisioned dashboards", fillcolor="#F0EBFC", color="#9B79D9"];
+alerts [label="Alertmanager", fillcolor="#F0EBFC", color="#9B79D9"];
+webhook [label="Webhook /alerts
+Local notification JSONL", fillcolor="#F3F5F9", color="#98A6BB"];
+
+}
+subgraph cluster_retrain { label="SEPARATE CANDIDATE RETRAINING VISIBILITY"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#E4BD84"; style="rounded,dashed"; penwidth=1.2; margin=16;
+worker [label="Host retraining worker
+Approval / eligibility counts", fillcolor="#FFF2DE", color="#DC9B46"];
+snapshot [label="retraining_monitor.json
+Aggregate status only", fillcolor="#F3F5F9", color="#98A6BB"];
+statusapi [label="GET /monitoring/retraining-status
+X-Monitoring-Token", fillcolor="#E9F8F0", color="#50A47B"];
+ui [label="Streamlit Pipeline Overview
+Feedback / threshold status", fillcolor="#EAF3FF", color="#6495D6"];
+
+}
+
+backend -> prom [label="scrape"]; cadvisor -> prom [label="scrape"]; prom -> graf; prom -> alerts [label="firing alerts"]; alerts -> webhook; worker -> snapshot; snapshot -> statusapi; statusapi -> ui [label="authenticated read"];
+}

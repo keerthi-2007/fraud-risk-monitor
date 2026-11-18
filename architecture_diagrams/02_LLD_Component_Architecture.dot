@@ -1,0 +1,52 @@
+digraph G {
+ graph [rankdir=LR, splines=polyline, bgcolor="white", labelloc=t, fontname="DejaVu Sans", fontsize=23, fontcolor="#17243D", pad="0.38", nodesep="0.37", ranksep="0.83", outputorder=edgesfirst];
+ node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=13, fontcolor="#18263D", color="#9AAAC0", fillcolor="#F5F8FC", penwidth=1.5, margin="0.18,0.13"];
+ edge [fontname="DejaVu Sans", fontsize=10, color="#60738F", fontcolor="#475569", arrowsize=0.72, penwidth=1.5];
+label="Low-Level Components | API, Worker and Stores";
+subgraph cluster_frontend { label="FRONTEND"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#90B6EC"; style="rounded,dashed"; penwidth=1.2; margin=16;
+stream [label="frontend/app.py
+Streamlit UI", fillcolor="#EAF3FF", color="#6495D6"];
+client [label="frontend/pipeline_client.py
+Authenticated status client", fillcolor="#EAF3FF", color="#6495D6"];
+
+}
+subgraph cluster_backend { label="FASTAPI ROUTERS / MODULES"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#8CCBB0"; style="rounded,dashed"; penwidth=1.2; margin=16;
+main [label="backend/main.py
+/predict, /predict/csv, /health", fillcolor="#E9F8F0", color="#50A47B"];
+feedback [label="feedback_store.py
+POST /feedback", fillcolor="#E9F8F0", color="#50A47B"];
+status [label="pipeline_status.py
+GET pipeline-status", fillcolor="#E9F8F0", color="#50A47B"];
+retrainapi [label="retraining_status.py
+GET retraining-status", fillcolor="#E9F8F0", color="#50A47B"];
+metrics [label="drift_monitor.py / metrics
+PSI + Prometheus", fillcolor="#E9F8F0", color="#50A47B"];
+
+}
+subgraph cluster_work { label="SEPARATE HOST-SIDE WORKER"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#E6BE83"; style="rounded,dashed"; penwidth=1.2; margin=16;
+approver [label="approve_feedback.py
+Reviewer CLI", fillcolor="#FFF2DE", color="#DC9B46"];
+cycle [label="retraining_cycle.py
+60 s polling", fillcolor="#FFF2DE", color="#DC9B46"];
+train [label="auto_retrain.py
+Eligibility + train", fillcolor="#FFF2DE", color="#DC9B46"];
+evaluation [label="prepare_candidate_evaluation.py
+MLflow evaluation", fillcolor="#FFF2DE", color="#DC9B46"];
+promotion [label="promotion_controller.py
+Gating / auto_promotion.py", fillcolor="#FFF2DE", color="#DC9B46"];
+deploy [label="deploy_candidate.py
+Opt-in + rollback", fillcolor="#FFF0F0", color="#C7656C"];
+
+}
+subgraph cluster_storage { label="PERSISTENT DATA"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#C0C8D5"; style="rounded,dashed"; penwidth=1.2; margin=16;
+fbst [label="feedback.jsonl
+approved_feedback.jsonl", fillcolor="#F3F5F9", color="#98A6BB"];
+snapshot [label="retraining_monitor.json
+pipeline_status.json", fillcolor="#F3F5F9", color="#98A6BB"];
+mlf [label="MLflow artifacts + registry
+Approved model", fillcolor="#F3F5F9", color="#98A6BB"];
+
+}
+
+stream -> main; stream -> feedback; client -> status; client -> retrainapi; feedback -> fbst; approver -> fbst; fbst -> train; cycle -> train; train -> evaluation; evaluation -> promotion; promotion -> deploy [style=dashed,label="explicit opt-in"]; deploy -> mlf [style=dashed,label="verified active model"]; train -> snapshot; retrainapi -> snapshot; status -> snapshot; main -> mlf; main -> metrics;
+}

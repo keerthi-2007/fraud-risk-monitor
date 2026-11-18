@@ -1,8 +1,8 @@
 # AIOps Fraud Risk Monitor
 ## System Architecture Document
 
-**Version:** 1.0
-**Date:** 14 November 2026
+**Version:** 1.1
+**Date:** 19 November 2026
 **Project:** AIOps Fraud Risk Monitor
 
 ---
@@ -23,6 +23,7 @@ The project combines:
 - Grafana for visual monitoring
 - Alertmanager and a webhook for alert notifications
 - Docker Compose for service orchestration
+- Separate host-side watcher for approved-feedback candidate retraining
 
 The system separates offline model development from online inference.
 
@@ -30,30 +31,31 @@ The system separates offline model development from online inference.
 
 ```mermaid
 flowchart TD
-    A[Raw Transaction Dataset] --> B[DVC Data Preparation]
-    A --> C[Spark Data Audit]
-    B --> D[Train Validation Test Splits]
-    D --> E[Drift Baseline Generation]
-    D --> F[MLflow Training]
-    F --> G[Controlled Model Evaluation]
-    G --> H[Registered MLflow Model]
-
-    I[Streamlit Frontend] --> J[FastAPI Backend]
-    H --> J
-    E --> J
-
-    J --> K[Fraud Prediction Results]
-    J --> L[Feedback Storage]
-    J --> M[Prometheus Metrics]
-
-    N[cAdvisor] --> M
-    M --> O[Grafana Dashboards]
-    M --> P[Alertmanager]
-    P --> Q[Webhook Notification Log]
-
-    R[DVC Status and Execution Runner] --> S[Pipeline Snapshot]
-    S --> J
+  RAW[Historical transactions] --> PREP[DVC: prepare_data]
+  RAW --> SPARK[DVC: spark_audit]
+  PREP --> SPLIT[DVC: create_splits]
+  SPLIT --> BASE[DVC: build_drift_baseline]
+  SPLIT --> TRAIN[Controlled original model training]
+  TRAIN --> MLFLOW[(MLflow registry and artifacts)]
+  MLFLOW --> API[FastAPI approved inference]
+  UI[Streamlit] --> API
+  API --> RESULT[Prediction results]
+  API --> FB[(Feedback JSONL)]
+  FB --> APPROVE[Independent confirmation + reviewer approval]
+  APPROVE --> WORKER[Host watcher: eligibility and duplicate checks]
+  SPLIT --> WORKER
+  WORKER --> CAND[Candidate training + validation]
+  CAND --> MLFLOW
+  CAND --> GATE[Evaluation and promotion checks]
+  GATE -. explicit deployment opt-in only .-> API
+  WORKER --> STATUS[(Retraining status snapshot)]
+  STATUS --> API
+  API --> PROM[Prometheus metrics]
+  PROM --> GRAF[Grafana dashboards]
+  PROM --> ALERT[Alertmanager and webhook]
 ```
+
+![High-level architecture](../architecture_diagrams/01_HLD_System_Architecture.png)
 
 The Spark audit is an independent DVC stage using the raw dataset.
 Training and final evaluation are controlled MLflow operations
@@ -120,7 +122,17 @@ Transactions scoring at or above the threshold are labelled
 
 A review decision does not confirm that fraud occurred.
 
-Model retraining is not triggered automatically.
+A host-side watcher can initiate candidate retraining from sufficiently approved and eligible feedback. It is separate from DVC and the seven Docker Compose services. Model promotion is validated independently; **automatic live deployment remains off unless explicitly enabled**.
+
+### Feedback-driven candidate lifecycle
+
+1. Store submitted outcomes in `data/feedback/feedback.jsonl`.
+2. Independently confirm outcomes and record reviewer approvals in `approved_feedback.jsonl`.
+3. Screen for invalid, duplicate or existing train/validation/test transactions.
+4. Require at least 20 eligible labels, including 3 fraud and 3 legitimate examples.
+5. Train a new candidate using original training rows plus eligible approved feedback; evaluate with validation data and log MLflow artifacts.
+6. Run separate candidate evaluation and promotion checks; preserve the current deployed model by default.
+7. Publish a read-only status snapshot to `data/feedback/retraining_monitor.json`. The held-out test split is not used to select candidates.
 
 ## 5. FastAPI Backend
 
@@ -135,6 +147,7 @@ The backend loads the approved MLflow model and exposes:
 | POST | /feedback | Save corrected-label feedback |
 | POST | /monitoring/validation-failure | Record upload validation failures |
 | GET | /monitoring/pipeline-status | Retrieve saved pipeline status |
+| GET | /monitoring/retraining-status | Retrieve authenticated feedback/retraining eligibility snapshot |
 
 Single predictions require exactly 29 numeric input features.
 
@@ -153,6 +166,7 @@ The Streamlit interface provides:
 - Prediction-result review and feedback submission
 - Pipeline overview and recorded execution history
 - Information about the connected prediction API
+- Authenticated retraining eligibility and approval-status display
 
 Streamlit communicates with FastAPI using the Docker service network.
 
@@ -180,6 +194,8 @@ Drift analysis is best-effort and does not block valid scoring
 when monitoring encounters an error.
 
 ### Feedback monitoring
+
+The worker writes eligible, unapproved and per-class feedback counts to a snapshot. FastAPI serves only validated aggregate fields through a token-protected read-only route. This is not an automatic deployment control.
 
 Authorized feedback is stored in a local JSONL file.
 
@@ -226,7 +242,7 @@ This is snapshot-based monitoring, not a live job scheduler.
 
 ## 9. Docker Deployment
 
-Docker Compose defines seven services.
+Docker Compose defines seven services. The retraining watcher is an **additional host-side process** and is not counted as a Docker service.
 
 | Service | Responsibility | Host port |
 |---|---|---|
@@ -250,7 +266,7 @@ The backend and frontend run as non-root container users.
 The application implements:
 
 - Token-protected feedback submission
-- Token-protected pipeline monitoring access
+- Token-protected pipeline and retraining-status monitoring access
 - API input validation
 - Non-root backend and frontend containers
 - Read-only model artifact and pipeline snapshot mounts
@@ -268,8 +284,9 @@ Verified evidence includes:
 
 | Verification | Result |
 |---|---|
-| Local automated tests | 111 passed |
-| Portable CI tests | 105 passed |
+| Local full pytest suite (last recorded) | 147 passed |
+| GitHub Actions hosted CI | Passed on commit `6103977` |
+| Targeted deployment tests after CI fixture fix | 5 passed |
 | Backend Docker build | Passed |
 | Frontend Docker build | Passed |
 | DVC status | Up to date |
@@ -280,22 +297,18 @@ Verified evidence includes:
 | Prometheus alert rules | 5 valid |
 | Webhook delivery test | Passed |
 
-A GitHub Actions workflow is configured for portable tests
-and Docker builds.
-
-However, hosted GitHub Actions execution has not yet been
-verified because the local repository has no Git remote.
+The GitHub Actions workflow executes portable unit/integration tests and builds both Docker images. The latest reported run for commit `6103977` passed. Local dataset-dependent and deployed-model tests require the developer environment.
 
 ## 12. Limitations
 
 - The system operates on historical transaction data.
 - Model scores are not calibrated fraud probabilities.
-- Feedback does not automatically trigger retraining.
+- New candidate retraining is gated by independent approval and a minimum amount of eligible feedback; autonomous live deployment is off by default.
 - Execution history captures only runs using the stage runner.
 - Pipeline snapshots may become stale.
 - Production authentication and network hardening are outside
   the scope of this local academic deployment.
-- Hosted GitHub Actions execution remains unverified.
+- The isolated retraining/promotion tests do not establish production-grade autonomous rollout or rollback reliability.
 
 ## 13. Conclusion
 
