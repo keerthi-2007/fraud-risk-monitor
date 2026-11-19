@@ -51,7 +51,7 @@ operational checks complete successfully.
 
 ## 5. Automated Test Inventory
 
-**Complete local suite:** 147 cases across 26 test files.
+**Complete local suite:** 160 cases across 29 test files (147 original cases plus 13 added for explainability, encryption at rest and the Spark transformation stage).
 
 **Original case inventory below:** 111 cases from 17 original test files; the 36 additional retraining/promotion tests are documented after AT-111.
 
@@ -305,7 +305,18 @@ The newer 36 cases are in the following nine files. The original 111 test-case I
 
 The exact per-test pytest names can be enumerated from a checkout with `python -m pytest --collect-only -q`; this archival package includes the documentation rather than a fresh full test log.
 
+### Additional automated test modules (AT-148 to AT-160)
+
+| ID range | Module | Focus |
+|---|---|---|
+| AT-148 – AT-152 | `tests/test_explain.py` | `/explain` contributions, validation, reference medians |
+| AT-153 – AT-158 | `tests/test_feedback_encryption.py` | Fernet encryption at rest, plaintext fallback, missing/wrong key, tamper detection, `.env` key loading |
+| AT-159 – AT-160 | `tests/test_spark_transform.py` | Spark ingest → validate → enrich → partitioned Parquet; negative-amount rejection (runs real Spark; skipped if Java/PySpark absent) |
+
 ## 6. Automated Test Execution Results
+
+**Latest verification (development checkout, without the private dataset/MLflow database):** 155 cases selected, **154 passed, 0 failed**, 1 deselected (`test_integration.py::test_deployed_api_matches_mlflow_model`, needs `mlflow.db`); `tests/test_data.py` (5 cases) was not collected because it needs the generated splits. Those 6 data/model-dependent cases are run in the Ubuntu VM with `make test`.
+
 
 The last recorded full local pytest verification ran **147 cases**, with **147 passed and 0 failed**. That run reported seven MLflow-related deprecation warnings rather than test failures.
 
@@ -434,6 +445,7 @@ The 105 original portable cases and 36 new cases are contained within the 147-ca
 | Category | Executed | Passed | Failed | Evidence |
 |---|---:|---:|---:|---|
 | Full local pytest suite (last recorded) | 147 | 147 | 0 | Ubuntu VM |
+| Latest suite incl. explain/encryption/Spark tests | 154 | 154 | 0 | Dev checkout; 6 data/model-dependent cases run on VM |
 | Targeted deployment tests after fixture correction | 5 | 5 | 0 | Ubuntu VM, subset of full suite |
 | Hosted portable test selection | 141 | 141 | 0 | GitHub Actions green on `96b8113` (105 original + 36 new) |
 | Documented manual integration checks | 16 | 16 | 0 | Local Docker/DVC/monitoring verification |
@@ -442,7 +454,7 @@ The 141 hosted tests and five targeted deployment tests overlap with the complet
 
 ## 14. Conclusion
 
-The last recorded full local suite passed 147 automated tests; 16 manual integration checks were also documented. Following a two-test CI fixture correction, the hosted workflow passed on commit `96b8113`.
+The suite now contains 160 automated tests; the latest run passed all 154 that do not need the private dataset/model (0 failed), and the last full VM run passed 147; 16 manual integration checks were also documented. Following a two-test CI fixture correction, the hosted workflow passed on commit `96b8113`.
 
 The testing covers model inference, input validation,
 feedback, drift monitoring, DVC pipeline monitoring,

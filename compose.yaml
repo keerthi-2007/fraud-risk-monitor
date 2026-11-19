@@ -13,6 +13,8 @@ services:
       DECISION_THRESHOLD: '0.87292890258894895'
       MONITORING_TOKEN: ${MONITORING_TOKEN:?Set MONITORING_TOKEN in .env}
       FEEDBACK_TOKEN: ${FEEDBACK_TOKEN:?Set FEEDBACK_TOKEN in .env}
+      # Fernet key: feedback transactions are encrypted at rest.
+      FEEDBACK_ENCRYPTION_KEY: ${FEEDBACK_ENCRYPTION_KEY:?Set FEEDBACK_ENCRYPTION_KEY in .env}
     volumes:
       - ./mlflow.db:/app/mlflow.db
       - ./mlartifacts:/home/ariro/Documents/fraud-risk-monitor/mlartifacts:ro
@@ -26,27 +28,15 @@ services:
       timeout: 3s
       retries: 5
 
-  # Optional native MLflow model server (MLflow APIfication of the same
-  # registered model). Start with: docker compose --profile mlflow-serve up
+  # Native MLflow model server for the same registered model
+  # (MLflow APIfication). Independent of the FastAPI backend.
   mlflow-serve:
-    profiles: ["mlflow-serve"]
     build:
       context: .
-      dockerfile: backend/Dockerfile
-    command:
-      - mlflow
-      - models
-      - serve
-      - --model-uri
-      - models:/FraudRiskClassifier/1
-      - --env-manager
-      - local
-      - --host
-      - 0.0.0.0
-      - --port
-      - "5001"
+      dockerfile: mlflow_serving/Dockerfile
     environment:
       MLFLOW_TRACKING_URI: sqlite:////app/mlflow.db
+      MLFLOW_MODEL_URI: "${ACTIVE_MODEL_URI:-models:/FraudRiskClassifier/1}"
     volumes:
       - ./mlflow.db:/app/mlflow.db
       - ./mlartifacts:/home/ariro/Documents/fraud-risk-monitor/mlartifacts:ro

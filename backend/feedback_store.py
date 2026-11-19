@@ -12,6 +12,8 @@ from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 from prometheus_client import Counter
 
+from backend.feedback_crypto import protect_features
+
 
 router = APIRouter()
 FEEDBACK_SUBMISSIONS = Counter(
@@ -90,10 +92,11 @@ def save_feedback(
         "predicted_decision": submission.predicted_decision,
         "corrected_label": submission.corrected_label,
         "prediction_was_correct": predicted_label == submission.corrected_label,
-        "features": {
+        # Encrypted at rest when FEEDBACK_ENCRYPTION_KEY is configured.
+        **protect_features({
             name: submission.features[name]
             for name in FEATURE_NAMES
-        },
+        }),
     }
 
     try:

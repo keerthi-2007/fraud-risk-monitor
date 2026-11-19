@@ -515,6 +515,8 @@ Prometheus and Grafana use Docker-managed persistent volumes.
 
 ## 17. Authentication and Security
 
+**Encryption at rest.** Feedback feature vectors are encrypted with Fernet (AES-128-CBC + HMAC-SHA256) using `FEEDBACK_ENCRYPTION_KEY` from the git-ignored `.env` before being written to `data/feedback/feedback.jsonl`. Stored records carry `features_encrypted` and `encryption: "fernet-v1"` instead of plaintext `features`; `backend/feedback_crypto.record_features()` decrypts for retraining and rejects tampered tokens or a wrong key. Compose refuses to start the backend without the key.
+
 The backend uses two separate authentication headers:
 
 | Header | Protected operation |

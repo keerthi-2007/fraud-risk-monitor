@@ -20,6 +20,9 @@ entry_points:
   spark_audit:
     command: "python scripts/spark_audit.py"
 
+  spark_transform:
+    command: "python scripts/spark_transform.py"
+
   eda:
     command: "python scripts/run_eda.py"
 

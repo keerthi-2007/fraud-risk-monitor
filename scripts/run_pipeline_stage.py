@@ -16,6 +16,7 @@ ALLOWED_STAGES = {
     "prepare_data",
     "create_splits",
     "spark_audit",
+    "spark_transform",
     "build_drift_baseline",
 }
 

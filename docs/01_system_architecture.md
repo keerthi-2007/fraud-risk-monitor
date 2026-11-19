@@ -83,6 +83,10 @@ The DVC pipeline contains four stages:
 
 DVC records stage dependencies and output metadata.
 
+### Spark transformation stage
+
+`scripts/spark_transform.py` (DVC stage `spark_transform`) is the Spark ingestion/transformation pipeline: explicit-schema FAILFAST ingest of the raw CSV, distributed validation, engineered columns (`log_amount`, `is_zero_amount`, `amount_zscore`, SHA-256 `feature_hash`, window-based `duplicate_count`), and Snappy Parquet output partitioned by `Class` in `data/processed/spark_features/`. Throughput (rows/second) is written to `metrics/spark_transform.json` and shown by `dvc metrics show`.
+
 ### Spark execution evidence
 
 A real Spark audit execution produced:
@@ -262,6 +266,8 @@ pipeline-status data are mounted into the backend as needed.
 The backend and frontend run as non-root container users.
 
 ## 10. Security
+
+**Encryption at rest.** Feedback feature vectors are encrypted with Fernet (AES-128-CBC + HMAC-SHA256) using `FEEDBACK_ENCRYPTION_KEY` from the git-ignored `.env` before being written to `data/feedback/feedback.jsonl`. Stored records carry `features_encrypted` and `encryption: "fernet-v1"` instead of plaintext `features`; `backend/feedback_crypto.record_features()` decrypts for retraining and rejects tampered tokens or a wrong key. Compose refuses to start the backend without the key.
 
 The application implements:
 
