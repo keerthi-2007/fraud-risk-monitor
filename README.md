@@ -900,22 +900,30 @@ A refreshed architecture overview contact sheet (`architecture_diagrams/00__Over
 Screenshots of the working application and monitoring tools are organised under:
 
 ```text
-docs/screenshots/
-├── mlflow/
-├── streamlit_app/
-├── prometheus/
-└── Grafana_dashboards/
+Screenshots/
+├── streamlit_app/        # scoring, feedback, explanations, 7-stage pipeline view
+├── mlflow/               # experiments, registry, feature importance, native serving
+├── prometheus/           # scrape targets (incl. Alertmanager), alert rules, drift alert
+├── Grafana_dashboards/   # fraud operations, container health, risk monitor
+├── github_actions/       # CI runs: lint + DVC validation, tests, Docker builds
+├── spark/                # Spark transformation metrics (≈20,400 rows/s)
+└── docker/               # all eight Compose services running
 ```
 
 These screenshots document:
 
 - Streamlit fraud prediction and batch scoring
-- Streamlit feedback and pipeline overview
+- Streamlit feedback and pipeline overview (seven DVC stages)
+- Per-prediction explanations ("Why was a row scored this way?")
 - MLflow experiments, metrics and Model Registry
+- MLflow permutation feature importance and native model serving (`/invocations`)
 - Prometheus scrape targets and alert rules
 - Prometheus data drift alerts
 - Grafana fraud operations metrics
 - Grafana container monitoring
+- GitHub Actions CI (code style, DVC DAG validation, tests, Docker builds)
+- Spark transformation throughput
+- All eight Docker Compose services running
 
 The screenshots provide evidence of the locally executed application and monitoring stack.
 
