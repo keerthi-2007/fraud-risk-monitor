@@ -73,6 +73,7 @@ not confirmed fraud.
 | GET | /health | JSON health status |
 | POST | /predict | JSON prediction |
 | POST | /predict/csv | Downloadable CSV |
+| POST | /explain | JSON prediction with feature contributions |
 | GET | /metrics | Prometheus metrics |
 | POST | /feedback | JSON acknowledgment |
 | POST | /monitoring/validation-failure | HTTP 204 |
@@ -151,6 +152,42 @@ Response fields:
 7. Return the prediction.
 
 Invalid values and feature sets return HTTP 422.
+
+### POST /explain
+
+Explains a single prediction. The request body is identical to `POST /predict`
+(`{"features": {"V1": ..., ..., "V28": ..., "Amount": ...}}`) and uses the same
+validation (HTTP 422 for missing/unexpected features, non-finite values or a
+negative Amount).
+
+**Method — single-feature occlusion.** Reference values are the training-split
+medians, interpolated from the histogram in `monitoring/drift_baseline.json`.
+The service builds one batch of 31 rows: the original transaction, 29 copies
+with exactly one feature reset to its reference value, and one all-reference
+row. `contribution = risk_score - score_with_feature_reset`; positive values
+pushed the transaction towards `review`. The method is model-agnostic and costs
+one `predict_proba` call.
+
+Successful response (HTTP 200):
+
+```json
+{
+  "model_run_id": "27da3507bddb413bab9cd0a12aeb092a",
+  "risk_score": 0.98,
+  "score_type": "uncalibrated_model_score",
+  "decision_threshold": 0.8729,
+  "decision": "review",
+  "method": "single_feature_occlusion",
+  "reference_score": 0.14,
+  "contributions": [
+    {"feature": "Amount", "value": 350.0, "reference_value": 22.08, "contribution": 0.33},
+    {"feature": "V14", "value": -3.0, "reference_value": 0.05, "contribution": 0.17}
+  ]
+}
+```
+
+`contributions` holds all 29 features sorted by absolute contribution. The
+endpoint increments `fraud_explanations_total{decision}`.
 
 ## 7. POST /predict/csv
 

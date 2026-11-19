@@ -26,6 +26,34 @@ services:
       timeout: 3s
       retries: 5
 
+  # Optional native MLflow model server (MLflow APIfication of the same
+  # registered model). Start with: docker compose --profile mlflow-serve up
+  mlflow-serve:
+    profiles: ["mlflow-serve"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command:
+      - mlflow
+      - models
+      - serve
+      - --model-uri
+      - models:/FraudRiskClassifier/1
+      - --env-manager
+      - local
+      - --host
+      - 0.0.0.0
+      - --port
+      - "5001"
+    environment:
+      MLFLOW_TRACKING_URI: sqlite:////app/mlflow.db
+    volumes:
+      - ./mlflow.db:/app/mlflow.db
+      - ./mlartifacts:/home/ariro/Documents/fraud-risk-monitor/mlartifacts:ro
+    ports:
+      - "127.0.0.1:5001:5001"
+    restart: unless-stopped
+
   frontend:
     restart: unless-stopped
     build:

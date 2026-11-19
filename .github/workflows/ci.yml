@@ -8,6 +8,34 @@ permissions:
   contents: read
 
 jobs:
+  lint-and-pipeline:
+    name: Code style and DVC pipeline validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install tooling
+        run: python -m pip install ruff dvc==3.67.1
+
+      - name: Ruff (PEP 8 / pyflakes)
+        run: ruff check .
+
+      - name: Validate DVC pipeline DAG
+        run: |
+          dvc dag
+          dvc dag --md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check MLproject and params are well-formed
+        run: |
+          python -c "import yaml; yaml.safe_load(open('MLproject')); yaml.safe_load(open('params.yaml')); yaml.safe_load(open('python_env.yaml'))"
+
   portable-tests:
     name: Portable automated tests
     runs-on: ubuntu-latest
@@ -40,6 +68,7 @@ jobs:
             tests/test_csv_drift_integration.py \
             tests/test_drift_detector.py \
             tests/test_drift_monitor.py \
+            tests/test_explain.py \
             tests/test_feedback.py \
             tests/test_feedback_metrics.py \
             tests/test_feedback_metrics_api.py \

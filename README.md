@@ -382,6 +382,12 @@ The selected run records model configuration, dataset split identifiers, Git com
 
 The experiment also contains alternative model runs and final evaluation records.
 
+`MLproject` declares a pinned `python_env.yaml` environment and entry points for every lifecycle step (`main` = `dvc repro`, `fetch_data`, `prepare_data`, `create_splits`, `spark_audit`, `eda`, `train`, `evaluate`, `test`), e.g. `mlflow run . -e train`.
+
+Each training run additionally logs `params.yaml`, its SHA-256, permutation feature importance (`feature_importance.json` and one `perm_importance_<feature>` metric per feature) and a `top_feature` tag.
+
+The registered model can also be served natively by MLflow: `docker compose --profile mlflow-serve up mlflow-serve` exposes `POST http://127.0.0.1:5001/invocations`.
+
 The MLflow UI command reads an existing tracking database. It does not create the original experiment results or retrain the approved model.
 
 ## 9. Streamlit Application Features
@@ -395,6 +401,7 @@ The MLflow UI command reads an existing tracking database. It does not create th
 5. View the prediction summary.
 6. Inspect the transaction risk scores.
 7. Download the prediction results.
+8. Optionally open **Why was a row scored this way?**, choose a row and click **Explain this row** to see which values raised or lowered its risk score (backed by `POST /explain`).
 
 The application displays the number of processed transactions and the numbers classified as `review` and `normal`.
 
@@ -454,6 +461,7 @@ http://127.0.0.1:8000/docs
 | GET | `/health` | Health check and model run information |
 | POST | `/predict` | Single transaction prediction |
 | POST | `/predict/csv` | Batch CSV scoring |
+| POST | `/explain` | Single transaction prediction with per-feature contributions |
 | POST | `/feedback` | Store corrected transaction outcome |
 | GET | `/metrics` | Expose Prometheus application metrics |
 | GET | `/monitoring/pipeline-status` | Read recorded pipeline status |
@@ -480,10 +488,21 @@ DVC manages the data-processing stages and their dependencies.
 | `create_splits` | Generate training, validation and test splits |
 | `spark_audit` | Independently audit raw data using Spark |
 | `build_drift_baseline` | Build reference statistics for drift monitoring |
+| `eda` | Regenerate exploratory data analysis charts and summary |
+| `train_baselines` | Train candidate models with `params.yaml` hyperparameters, log runs + permutation feature importance to MLflow, write `metrics/train_metrics.json` |
 
+The DAG root is `data/raw.dvc`, which versions the raw dataset and its download manifest.
 The Spark audit is an independent stage using the raw dataset.
 
-Model training and final evaluation are controlled MLflow operations outside the DVC dependency graph.
+Training is part of the DAG, so changing a hyperparameter in `params.yaml` invalidates `train_baselines`:
+
+```bash
+dvc repro train_baselines
+dvc metrics show
+dvc params diff
+```
+
+Final test-set evaluation (`scripts/evaluate_final.py`) and model promotion stay manual, gated steps so the test split is never used for model selection.
 
 ### Inspect the DVC Pipeline
 
@@ -577,6 +596,8 @@ The application exposes metrics relating to:
 - Review and normal decisions
 - Input validation failures
 - Feature drift
+- Explanations served
+- Unhandled server errors
 - Feedback records
 - Container activity and resource usage
 
@@ -701,7 +722,7 @@ The project includes a GitHub Actions workflow:
 .github/workflows/ci.yml
 ```
 
-The workflow provides portable automated verification and Docker image build checks.
+The workflow provides code-style checks (Ruff, configured in `pyproject.toml`), DVC DAG validation (`dvc dag`, rendered into the job summary), portable automated tests and Docker image build checks.
 
 The CI configuration runs tests and build checks without depending on the complete local training environment.
 

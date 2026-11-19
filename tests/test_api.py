@@ -1,8 +1,6 @@
-from types import SimpleNamespace
-
 from fastapi.testclient import TestClient
 
-from backend.main import app, FEATURE_COLUMNS, DECISION_THRESHOLD
+from backend.main import app, DECISION_THRESHOLD
 
 
 class FakeModel:

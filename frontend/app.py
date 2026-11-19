@@ -213,7 +213,7 @@ def validate_frame(raw_df):
         return None, f"Amount cannot be negative. Check CSV row(s): {row_numbers}."
 
     return numeric_df.reset_index(drop=True), None
-    
+
 def read_single_csv(uploaded_file):
     if uploaded_file.size > MAX_FILE_BYTES:
         return None, "This file is larger than the 50 MB upload limit."
@@ -289,6 +289,89 @@ def api_error(response):
     except ValueError:
         detail = response.text
     return str(detail)
+
+def fetch_explanation(features):
+    """Ask the backend /explain endpoint why a transaction scored as it did.
+
+    Returns (body, error_message); exactly one of them is None.
+    """
+    try:
+        response = requests.post(
+            f"{API_URL}/explain",
+            json={"features": features},
+            timeout=30,
+        )
+    except requests.RequestException as exc:
+        return None, f"Could not reach the prediction API: {exc}"
+
+    if not response.ok:
+        return None, f"Explanation failed ({response.status_code}): {api_error(response)}"
+    return response.json(), None
+
+
+def render_explanation_panel(saved, scored_df):
+    """Plain-language view of the features that drove one row's score."""
+    with st.expander("🔍 Why was a row scored this way?", expanded=False):
+        st.caption(
+            "Pick a row to see which values pushed its risk score up or down, "
+            "compared with a typical transaction from the training data."
+        )
+        row_number = st.number_input(
+            "Transaction row to explain",
+            min_value=1,
+            max_value=len(scored_df),
+            value=1,
+            step=1,
+            key=f"explain_row_{saved['filename']}_{len(scored_df)}",
+        )
+        input_record = saved["input_records"][int(row_number) - 1]
+        features = {name: float(input_record[name]) for name in FEATURE_COLUMNS}
+        cache = st.session_state.setdefault("explanations", {})
+        cache_key = repr(tuple(features.values()))
+
+        if st.button("Explain this row", key="explain_button"):
+            body, error = fetch_explanation(features)
+            if error:
+                st.error(error)
+            else:
+                cache[cache_key] = body
+
+        body = cache.get(cache_key)
+        if body is None:
+            return
+
+        top = body["contributions"][:8]
+        decision_text = (
+            "flagged for review" if body["decision"] == "review" else "normal"
+        )
+        st.markdown(
+            f"Row {int(row_number)} scored **{body['risk_score']:.3f}** "
+            f"(threshold {body['decision_threshold']:.3f}) and is "
+            f"**{decision_text}**. A typical transaction scores "
+            f"{body['reference_score']:.3f}."
+        )
+        chart = pd.DataFrame(
+            {
+                "Feature": [item["feature"] for item in top],
+                "Effect on risk score": [item["contribution"] for item in top],
+            }
+        ).set_index("Feature")
+        st.bar_chart(chart, horizontal=True)
+
+        raisers = [item["feature"] for item in top if item["contribution"] > 0][:3]
+        if raisers:
+            st.info(
+                "Biggest factors raising the score: " + ", ".join(raisers) + ". "
+                "Bars to the right raised the risk; bars to the left lowered it."
+            )
+        else:
+            st.info("No single value raised this transaction's risk score.")
+        st.caption(
+            "Method: each value is swapped for its typical (median) value one at "
+            "a time and the score change is measured. This explains the model, "
+            "not whether the transaction is actually fraudulent."
+        )
+
 
 def render_bulk_feedback_form(features, scored_row, source_file, row_number, file_index):
     feature_values = {
@@ -384,7 +467,7 @@ def render_bulk_feedback_form(features, scored_row, source_file, row_number, fil
         st.success("Feedback saved. The prediction matched the reported outcome.")
     else:
         st.info("Feedback saved. The prediction did not match the reported outcome.")
-        
+
 try:
     health_response = requests.get(f"{API_URL}/health", timeout=5)
     api_online = health_response.ok
@@ -553,6 +636,8 @@ with single_tab:
             file_name="fraud_risk_single_csv_predictions.csv",
             mime="text/csv",
         )
+
+        render_explanation_panel(saved, scored_df)
 
         with st.expander("📝 Report a confirmed outcome", expanded=False):
             st.caption(
@@ -900,7 +985,7 @@ with bulk_tab:
                         )
                     else:
                         st.dataframe(scored_df.head(20), hide_index=True)
-                        
+
                     feedback_row_number = st.number_input(
                         "Transaction row to report",
                         min_value=1,
