@@ -716,7 +716,7 @@ python -m pytest tests/ -q
 
 ### Recorded Local Verification
 
-**147 automated tests passed in the last verified local full-suite run.** After the isolated deployment-test fixture correction, all five targeted deployment tests passed.
+**All 160 automated tests passed (0 failed) in the full-suite run on the Ubuntu VM on 19 November 2026**, including the dataset- and MLflow-dependent cases.
 
 The test suite covers:
 

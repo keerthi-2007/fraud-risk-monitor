@@ -302,8 +302,7 @@ Verified evidence includes:
 
 | Verification | Result |
 |---|---|
-| Automated suite (latest) | 160 cases; 154 passed, 0 failed (6 data/model-dependent run on VM) |
-| Local full pytest suite (last recorded VM run) | 147 passed |
+| Full pytest suite (Ubuntu VM, 19 Nov 2026) | 160 passed, 0 failed |
 | GitHub Actions hosted CI | Passed on commit `96b8113` |
 | Targeted deployment tests after CI fixture fix | 5 passed |
 | Backend Docker build | Passed |

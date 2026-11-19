@@ -388,8 +388,7 @@ local academic demonstration.
 
 The implementation has demonstrated:
 
-- 160 automated tests in the suite; latest run passed all 154 that do not need the private dataset/model
-- 147 passing tests in the last recorded complete VM suite
+- 160 of 160 automated tests passing in the full Ubuntu VM run (0 failed)
 - Five passing targeted deployment tests following the clean-CI fixture fix
 - Successful hosted GitHub Actions CI for commit `96b8113`
 - Seven DVC stages, including Spark transformation, EDA and training

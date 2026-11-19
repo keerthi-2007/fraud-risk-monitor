@@ -72,7 +72,7 @@ guideline lists options and the project uses one of them; the reason is given.
 |---|---|---|---|
 | Test plan | Scope, approach, entry/exit criteria | `docs/04` §1–4 | Done |
 | List of test cases | Every automated case listed by ID (AT-xxx) plus 19 manual integration cases (MT-xx) | `docs/04` §5, §8 | Done |
-| Test report with number passed and failed | Latest: 154 passed, 0 failed (6 data-dependent cases run in the VM); last full VM run 147/147 | `docs/04` §6, §13 | Done |
+| Test report with number passed and failed | Full suite in the Ubuntu VM: 160 passed, 0 failed | `docs/04` §6, §13 | Done |
 | Acceptance criteria defined | 14 measurable criteria (AC-01 to AC-14) | `docs/04` §4 "Acceptance Criteria" | Done |
 | Acceptance criteria met | All 14 met, with evidence per criterion | `docs/04` §4, §14 | Done |
 

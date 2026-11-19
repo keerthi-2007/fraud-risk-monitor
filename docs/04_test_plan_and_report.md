@@ -57,7 +57,7 @@ that shows the result.
 
 | ID | Area | Acceptance criterion (target) | Observed result | Evidence | Met |
 |---|---|---|---|---|---|
-| AC-01 | Automated tests | 0 failed automated tests | 154 passed, 0 failed (latest); 147/147 (last full VM run) | Section 6 | Yes |
+| AC-01 | Automated tests | 0 failed automated tests | 160 passed, 0 failed (full VM run) | Section 6 | Yes |
 | AC-02 | Fraud detection | Validation fraud recall ≥ 80% at the approved threshold | 85.86% (85 of 99) | Section 10 | Yes |
 | AC-03 | Ranking quality | Test ROC-AUC ≥ 0.95 and test average precision ≥ 0.70 | ROC-AUC 0.976, AP 0.733 | Section 10 | Yes |
 | AC-04 | Alert workload | Validation review alerts ≤ 1% of validation rows | 307 of 56,962 (0.54%) | Section 10 | Yes |
@@ -343,7 +343,9 @@ The exact per-test pytest names can be enumerated from a checkout with `python -
 **Latest verification (development checkout, without the private dataset/MLflow database):** 155 cases selected, **154 passed, 0 failed**, 1 deselected (`test_integration.py::test_deployed_api_matches_mlflow_model`, needs `mlflow.db`); `tests/test_data.py` (5 cases) was not collected because it needs the generated splits. Those 6 data/model-dependent cases are run in the Ubuntu VM with `make test`.
 
 
-The last recorded full local pytest verification ran **147 cases**, with **147 passed and 0 failed**. That run reported seven MLflow-related deprecation warnings rather than test failures.
+**Full verification (Ubuntu VM, 19 November 2026):** `python -m pytest tests -q` ran all **160 cases**: **160 passed, 0 failed** in 24.8 s. The 8 warnings are library deprecation notices (PySpark/pandas, MLflow), not test failures.
+
+An earlier full VM run, before the explainability, encryption and Spark-transform tests were added, passed 147 of 147.
 
 After a GitHub-hosted CI failure exposed tests that assumed a local `.env`, the two affected cases in `tests/test_deploy_candidate.py` were corrected to use temporary fixtures. All **five targeted deployment tests then passed locally**; the full local suite was not independently rerun after that fixture-only correction.
 
@@ -353,7 +355,7 @@ The DVC data pipeline was previously verified up to date in the local Ubuntu env
 
 The GitHub Actions workflow runs the original **105 portable cases** and the additional retraining/promotion/status API test modules (36 new cases); six local dataset/model-integration cases are not selected for hosted CI. Hosted CI also builds backend and frontend Docker images.
 
-**Verified GitHub-hosted result:** commit `96b8113` — both *Portable automated tests* and *Docker image build verification* passed (confirmed by the operator from the GitHub Actions page). This is separate from the last recorded 147-test full local run.
+**Verified GitHub-hosted result:** commit `96b8113` — both *Portable automated tests* and *Docker image build verification* passed (confirmed by the operator from the GitHub Actions page). This is separate from the 160-test full local run.
 
 ## 8. Manual Integration Test Cases
 
@@ -480,14 +482,14 @@ The operator confirmed a successful GitHub Actions run for the verified checkpoi
 
 **CI evidence:** https://github.com/keerthi-2007/fraud-risk-monitor/actions
 
-The 105 original portable cases and 36 new cases are contained within the 147-case local suite and must not be added again as independent local tests.
+The 105 original portable cases and 36 new cases are contained within the 160-case local suite and must not be added again as independent local tests.
 
 ## 13. Test Summary
 
 | Category | Executed | Passed | Failed | Evidence |
 |---|---:|---:|---:|---|
-| Full local pytest suite (last recorded) | 147 | 147 | 0 | Ubuntu VM |
-| Latest suite incl. explain/encryption/Spark tests | 154 | 154 | 0 | Dev checkout; 6 data/model-dependent cases run on VM |
+| Full pytest suite | 160 | 160 | 0 | Ubuntu VM, 19 Nov 2026 |
+| Portable subset (no private dataset/model) | 154 | 154 | 0 | Development checkout |
 | Targeted deployment tests after fixture correction | 5 | 5 | 0 | Ubuntu VM, subset of full suite |
 | Hosted portable test selection | 141 | 141 | 0 | GitHub Actions green on `96b8113` (105 original + 36 new) |
 | Documented manual integration checks | 19 | 19 | 0 | Local Docker/DVC/monitoring verification |
@@ -498,7 +500,7 @@ The 141 hosted tests and five targeted deployment tests overlap with the complet
 
 All 14 acceptance criteria in Section 4 were met.
 
-The suite now contains 160 automated tests; the latest run passed all 154 that do not need the private dataset/model (0 failed), and the last full VM run passed 147; 19 manual integration checks were also documented. Following a two-test CI fixture correction, the hosted workflow passed on commit `96b8113`.
+The suite now contains 160 automated tests; all 160 passed with 0 failures in the full Ubuntu VM run; 19 manual integration checks were also documented. Following a two-test CI fixture correction, the hosted workflow passed on commit `96b8113`.
 
 The testing covers model inference, input validation,
 feedback, drift monitoring, DVC pipeline monitoring,

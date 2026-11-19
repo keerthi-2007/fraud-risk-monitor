@@ -629,8 +629,7 @@ The webhook:
 
 The completed system has been verified through:
 
-- 160 automated tests; latest run 154 passed, 0 failed (6 dataset/model-dependent cases run on the VM)
-- 147 passing local automated tests in the last recorded full VM run
+- 160 of 160 automated tests passing in the full Ubuntu VM run (0 failed)
 - Five passing targeted deployment tests following the clean-CI fixture fix
 - Successful hosted GitHub Actions test and Docker jobs on commit `96b8113`
 - Successful backend, frontend and MLflow-serving Docker builds
