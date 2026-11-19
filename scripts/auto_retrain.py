@@ -290,7 +290,11 @@ def run_once(*, min_feedback: int, min_fraud: int, dry_run: bool = False,
         ("scale", StandardScaler()),
         ("classifier", LogisticRegression(class_weight="balanced", max_iter=2000, random_state=42)),
     ])
-    LOG.info("Training candidate with %s original training rows and %s eligible new labelled rows", len(train), len(new))
+    LOG.info(
+        "Training candidate with %s original training rows and %s eligible new labelled rows",
+        len(train),
+        len(new),
+    )
     candidate.fit(X, y)
     scores = candidate.predict_proba(Xv)[:, 1]
     threshold, candidate_metrics = choose_threshold(yv, scores)

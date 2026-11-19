@@ -1,7 +1,6 @@
 """Feature-distribution drift detection using Population Stability Index."""
 
 import numpy as np
-import pandas as pd
 
 FEATURE_COLUMNS = [f"V{i}" for i in range(1, 29)] + ["Amount"]
 

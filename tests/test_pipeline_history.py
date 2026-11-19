@@ -5,7 +5,7 @@ import json
 import pytest
 
 from tests.test_pipeline_status import (
-    pipeline_root,
+    pipeline_root,  # noqa: F401 (pytest fixture)
     collect_with_status,
 )
 

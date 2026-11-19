@@ -4,7 +4,6 @@ import json
 from unittest.mock import patch
 
 from backend import feedback_store
-from backend.main import app
 from tests.test_api import make_client
 
 

@@ -1,4 +1,15 @@
-.PHONY: syntax test dvc-check check
+.PHONY: syntax lint test dvc-check check repro metrics
+
+lint:
+	ruff check .
+
+repro:
+	dvc repro
+
+metrics:
+	dvc metrics show
+	dvc params diff
+
 
 syntax:
 	python -m compileall -q backend frontend scripts tests
@@ -9,7 +20,7 @@ test:
 dvc-check:
 	dvc status
 
-check: syntax test dvc-check
+check: syntax lint test dvc-check
 
 .PHONY: ci
 

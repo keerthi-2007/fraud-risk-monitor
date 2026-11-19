@@ -1,0 +1,16 @@
+# Code-style configuration (PEP 8 via Ruff). Run: `ruff check .`
+[tool.ruff]
+line-length = 120
+target-version = "py314"
+extend-exclude = [".venv", "architecture_diagrams", "Screenshots"]
+
+[tool.ruff.lint]
+# pycodestyle errors/warnings + pyflakes
+select = ["E", "W", "F"]
+
+[tool.ruff.lint.per-file-ignores]
+# Pytest fixtures are imported into test modules and then injected by name.
+"tests/*" = ["F811"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

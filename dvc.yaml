@@ -33,3 +33,33 @@ stages:
     outs:
     - monitoring/drift_baseline.json:
         cache: false
+  eda:
+    cmd: python scripts/run_eda.py
+    deps:
+    - data/raw/creditcard.csv
+    - requirements.txt
+    - scripts/run_eda.py
+    outs:
+    - data/reports/eda_summary.md:
+        cache: false
+    - data/reports/eda_class_balance.png
+    - data/reports/eda_amount_by_class.png
+    - data/reports/eda_feature_distributions.png
+    - data/reports/eda_correlations.png
+    - data/reports/eda_duplicate_groups.png
+  train_baselines:
+    cmd: python scripts/train_baselines.py
+    deps:
+    - data/processed/splits/train.csv
+    - data/processed/splits/validation.csv
+    - data/processed/splits/split_manifest.json
+    - requirements.txt
+    - scripts/train_baselines.py
+    params:
+    - train
+    metrics:
+    - metrics/train_metrics.json:
+        cache: false
+    outs:
+    - metrics/feature_importance.json:
+        cache: false

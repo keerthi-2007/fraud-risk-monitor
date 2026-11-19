@@ -1,0 +1,21 @@
+# Hyperparameters tracked by DVC (`dvc params diff`) and logged to MLflow.
+# Changing any value here invalidates the `train_baselines` stage.
+
+train:
+  reference_threshold: 0.5
+  logistic_regression:
+    class_weight: balanced
+    max_iter: 2000
+    random_state: 42
+  hist_gradient_boosting:
+    class_weight: balanced
+    learning_rate: 0.1
+    max_iter: 150
+    max_leaf_nodes: 31
+    l2_regularization: 1.0
+    random_state: 42
+  feature_importance:
+    # Permutation importance is computed on a stratified validation sample.
+    sample_rows: 20000
+    n_repeats: 3
+    random_state: 42

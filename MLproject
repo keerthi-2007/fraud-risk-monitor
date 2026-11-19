@@ -1,8 +1,33 @@
 name: fraud-risk-monitor
 
+# Pinned interpreter + dependencies so `mlflow run .` builds the same
+# environment on every machine (dev and test parity).
+python_env: python_env.yaml
+
 entry_points:
+  main:
+    command: "dvc repro"
+
+  fetch_data:
+    command: "python scripts/fetch_dataset.py"
+
+  prepare_data:
+    command: "python scripts/clean_dataset.py"
+
+  create_splits:
+    command: "python scripts/create_splits.py"
+
+  spark_audit:
+    command: "python scripts/spark_audit.py"
+
+  eda:
+    command: "python scripts/run_eda.py"
+
   train:
     command: "python scripts/train_baselines.py"
 
   evaluate:
     command: "python scripts/evaluate_final.py"
+
+  test:
+    command: "python -m pytest tests -q"
