@@ -10,6 +10,7 @@ from pathlib import Path
 
 def save_active_model(path: Path, model_uri: str,
                       evaluation_id: str, threshold: float) -> None:
+    """Update the active model settings in .env without touching other keys."""
     path = Path(path)
 
     if not path.is_file() or path.is_symlink():

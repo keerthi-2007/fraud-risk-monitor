@@ -58,6 +58,7 @@ def fingerprint(features: dict[str, Any]) -> str:
 
 
 def split_frame(path: Path, with_labels: bool = True) -> pd.DataFrame:
+    """Load a DVC split and check it has the expected columns."""
     if not path.is_file():
         raise FileNotFoundError(f"Required DVC split missing: {path}; run dvc pull/repro")
     frame = pd.read_csv(path)
@@ -122,6 +123,7 @@ def load_approvals(path: Path) -> dict:
 
 def read_feedback(path: Path, known: set[str],
                   approved: dict | None = None) -> tuple[pd.DataFrame, dict[str, int]]:
+    """Load approved feedback, dropping invalid, duplicate, conflicting and known-dataset rows."""
     counts = {"records": 0, "invalid": 0, "duplicates": 0, "known_dataset": 0,
               "conflicting_labels": 0, "eligible": 0}
     counts["not_approved"] = 0
@@ -180,6 +182,7 @@ def read_feedback(path: Path, known: set[str],
 
 
 def choose_threshold(y: np.ndarray, scores: np.ndarray) -> tuple[float, dict[str, float]]:
+    """Pick the highest-precision threshold that still meets the recall target."""
     if set(np.unique(y)) != {0, 1}:
         raise ValueError("Validation must contain both classes")
     precision, recall, thresholds = precision_recall_curve(y, scores)
@@ -202,6 +205,7 @@ def choose_threshold(y: np.ndarray, scores: np.ndarray) -> tuple[float, dict[str
 
 
 def latest_state(path: Path) -> dict[str, Any]:
+    """Read the last retraining state file, or {} if missing or unreadable."""
     if not path.exists():
         return {}
     try:
@@ -211,6 +215,7 @@ def latest_state(path: Path) -> dict[str, Any]:
 
 
 def write_state(path: Path, state: dict[str, Any]) -> None:
+    """Atomically write the retraining state file."""
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
@@ -218,6 +223,7 @@ def write_state(path: Path, state: dict[str, Any]) -> None:
 
 
 def sha256_file(path: Path) -> str:
+    """SHA-256 of a file, read in 1 MiB blocks."""
     hasher = hashlib.sha256()
     with path.open("rb") as file:
         for block in iter(lambda: file.read(1024 * 1024), b""):
@@ -227,6 +233,7 @@ def sha256_file(path: Path) -> str:
 
 def run_once(*, min_feedback: int, min_fraud: int, dry_run: bool = False,
              root: Path = ROOT) -> str:
+    """Check eligibility and, if met, train, evaluate and log one candidate model."""
     splits = root / "data" / "processed" / "splits"
     feedback_path = root / "data" / "feedback" / "feedback.jsonl"
     state_path = root / "data" / "feedback" / "auto_retrain_state.json"
@@ -352,6 +359,7 @@ def run_once(*, min_feedback: int, min_fraud: int, dry_run: bool = False,
 
 
 def main() -> None:
+    """CLI: run one check (--once) or poll continuously (--watch)."""
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--once", action="store_true", help="Run one feedback check")

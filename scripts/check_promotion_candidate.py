@@ -12,6 +12,7 @@ STATE = ROOT / "data/feedback/auto_retrain_state.json"
 
 
 def main():
+    """Print whether the latest retraining candidate passed its quality gate."""
     if not STATE.is_file():
         print("NO_CANDIDATE: No completed retraining run yet.")
         return

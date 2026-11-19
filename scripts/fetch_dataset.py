@@ -1,3 +1,5 @@
+"""Download the ULB credit-card fraud dataset from OpenML and write a checksum manifest."""
+
 from datetime import datetime, timezone
 from hashlib import sha256
 import json

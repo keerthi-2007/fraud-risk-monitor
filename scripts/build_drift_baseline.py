@@ -16,6 +16,7 @@ BINS = 10
 
 
 def build_baseline():
+    """Build per-feature histograms of the training split for PSI drift checks."""
     frame = pd.read_csv(TRAIN_PATH, usecols=FEATURE_COLUMNS)
 
     if len(frame) < 100:

@@ -1,3 +1,5 @@
+"""DVC stage `spark_audit`: independently audit the raw dataset with Spark and record throughput."""
+
 import json
 from pathlib import Path
 
@@ -11,6 +13,7 @@ EXPECTED_COLUMNS = [f"V{i}" for i in range(1, 29)] + ["Amount", "Class"]
 
 
 def main():
+    """Audit the raw CSV with Spark and write audit results and throughput."""
     if not CSV_PATH.exists():
         raise FileNotFoundError(f"Raw CSV not found: {CSV_PATH}")
 

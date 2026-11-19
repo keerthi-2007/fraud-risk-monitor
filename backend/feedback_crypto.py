@@ -52,6 +52,7 @@ def _configured_key() -> str:
 
 
 def _fernet() -> Fernet | None:
+    """Return a Fernet cipher for the configured key, or None when no key is set."""
     key = _configured_key()
     if not key:
         return None
@@ -62,6 +63,7 @@ def _fernet() -> Fernet | None:
 
 
 def encryption_enabled() -> bool:
+    """Return True when a feedback encryption key is configured."""
     return _fernet() is not None
 
 

@@ -1,3 +1,5 @@
+"""Report repeated feature vectors in the raw dataset and their labels."""
+
 from pathlib import Path
 
 import pandas as pd

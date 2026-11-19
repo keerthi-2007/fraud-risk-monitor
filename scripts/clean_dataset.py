@@ -1,3 +1,7 @@
+"""DVC stage `prepare_data`: verify the raw CSV checksum, validate schema and values,
+and write the prepared dataset plus a cleaning report.
+"""
+
 from collections import Counter
 from hashlib import sha256
 import json

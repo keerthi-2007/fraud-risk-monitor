@@ -49,6 +49,31 @@ for the relevant tests.
 reports no outstanding pipeline changes, and targeted
 operational checks complete successfully.
 
+### Acceptance Criteria
+
+The application is accepted when every criterion below is met.
+Each criterion has a measurable target and names the evidence
+that shows the result.
+
+| ID | Area | Acceptance criterion (target) | Observed result | Evidence | Met |
+|---|---|---|---|---|---|
+| AC-01 | Automated tests | 0 failed automated tests | 154 passed, 0 failed (latest); 147/147 (last full VM run) | Section 6 | Yes |
+| AC-02 | Fraud detection | Validation fraud recall ≥ 80% at the approved threshold | 85.86% (85 of 99) | Section 10 | Yes |
+| AC-03 | Ranking quality | Test ROC-AUC ≥ 0.95 and test average precision ≥ 0.70 | ROC-AUC 0.976, AP 0.733 | Section 10 | Yes |
+| AC-04 | Alert workload | Validation review alerts ≤ 1% of validation rows | 307 of 56,962 (0.54%) | Section 10 | Yes |
+| AC-05 | Input validation | Malformed, missing or negative inputs rejected with HTTP 422, never scored | Covered by API, CSV and `/explain` validation tests | `test_api.py`, `test_explain.py` | Yes |
+| AC-06 | Availability | `GET /health` returns HTTP 200 with the approved model run ID | HTTP 200, correct run ID | MT-02 | Yes |
+| AC-07 | Data engineering | Spark processes all 284,807 rows at ≥ 10,000 rows/s | Transform 20,411.6 rows/s; audit 18,495.6 rows/s | MT-05, MT-17, Section 9 | Yes |
+| AC-08 | Reproducibility | `dvc status` reports no outstanding changes; every training run logs Git commit and data hashes | Pipeline up to date; tags logged in MLflow | MT-04, `train_baselines.py` | Yes |
+| AC-09 | Monitoring | All 5 alert rules valid and an alert reaches the webhook | 5 rules validated; notification delivered | MT-08 to MT-11 | Yes |
+| AC-10 | Deployment | All Compose services start and the backend reports healthy | 8 services running, backend and mlflow-serve healthy | MT-01 | Yes |
+| AC-11 | Model serving | MLflow scoring server returns predictions | `/invocations` returned a prediction | MT-18 | Yes |
+| AC-12 | Security | Feedback features stored only encrypted; tampering detected | Encryption tests pass; backend requires the key | MT-19, `test_feedback_encryption.py` | Yes |
+| AC-13 | Explainability | `/explain` returns a contribution for all 29 features | Explain tests pass | `test_explain.py` | Yes |
+| AC-14 | Continuous integration | Lint, DVC DAG validation, portable tests and Docker builds pass on GitHub Actions | Green run | Section 12 | Yes |
+
+**Result:** all 14 acceptance criteria are met.
+
 ## 5. Automated Test Inventory
 
 **Complete local suite:** 160 cases across 29 test files (147 original cases plus 13 added for explainability, encryption at rest and the Spark transformation stage).
@@ -470,6 +495,8 @@ The 105 original portable cases and 36 new cases are contained within the 147-ca
 The 141 hosted tests and five targeted deployment tests overlap with the complete local test inventory; they are not extra independent cases. The isolated retraining/promotion tests do not verify live unattended rollout and recovery in a production banking environment.
 
 ## 14. Conclusion
+
+All 14 acceptance criteria in Section 4 were met.
 
 The suite now contains 160 automated tests; the latest run passed all 154 that do not need the private dataset/model (0 failed), and the last full VM run passed 147; 19 manual integration checks were also documented. Following a two-test CI fixture correction, the hosted workflow passed on commit `96b8113`.
 

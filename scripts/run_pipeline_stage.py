@@ -22,10 +22,12 @@ ALLOWED_STAGES = {
 
 
 def utc_now():
+    """Current UTC time as an ISO-8601 string."""
     return datetime.now(timezone.utc).isoformat()
 
 
 def run_stage(stage, *, force=False, history_path=HISTORY_PATH):
+    """Run one allowlisted DVC stage and record its duration, status and throughput."""
     if stage not in ALLOWED_STAGES:
         raise ValueError(f"Unsupported DVC stage: {stage}")
 
@@ -128,6 +130,7 @@ def run_stage(stage, *, force=False, history_path=HISTORY_PATH):
 
 
 def main():
+    """CLI to run a single pipeline stage."""
     parser = argparse.ArgumentParser()
     parser.add_argument("stage", choices=sorted(ALLOWED_STAGES))
     parser.add_argument(

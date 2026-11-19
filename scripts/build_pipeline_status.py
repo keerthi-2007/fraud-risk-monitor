@@ -138,6 +138,7 @@ def collect_pipeline_status(root=ROOT):
 
 
 def main():
+    """Collect DVC pipeline status and write the snapshot JSON."""
     status = collect_pipeline_status()
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)

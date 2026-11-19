@@ -16,6 +16,7 @@ EVALUATION = ROOT / "data/feedback/promotion_evaluation.json"
 
 
 def verify_candidate():
+    """Return (run ID, evaluation ID, threshold) if a candidate passed every gate, else None."""
     if not STATE.exists():
         print("NO_CANDIDATE: Retraining has not produced a candidate.")
         return None

@@ -28,6 +28,7 @@ def saved_model_uri():
 
 
 def process_promotion(*, deploy=False):
+    """Promote a verified candidate if it differs from the live model; deploy only when asked."""
     verified = verify_candidate()
 
     if verified is None:
@@ -85,6 +86,7 @@ def process_promotion(*, deploy=False):
 
 
 def main():
+    """CLI entry point; pass --deploy to actually deploy."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--deploy",

@@ -1,3 +1,5 @@
+"""Write a data quality report for the raw dataset (shape, missing cells, duplicates, class balance)."""
+
 from collections import Counter
 from hashlib import sha256
 import json

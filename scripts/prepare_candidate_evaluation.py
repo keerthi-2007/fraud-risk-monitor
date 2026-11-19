@@ -22,6 +22,7 @@ VALIDATION = ROOT / "data/processed/splits/validation.csv"
 
 
 def main():
+    """Log an MLflow evaluation run for a candidate that passed the quality gate."""
     if not STATE.exists():
         print("NO_CANDIDATE")
         return

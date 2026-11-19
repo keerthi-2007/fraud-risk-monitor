@@ -17,6 +17,36 @@ data movement, integration and design decisions.
 The detailed API schemas are covered separately in
 the Low-Level Design and API Specification.
 
+### Business problem and success metrics
+
+Card fraud is rare (0.17% of transactions here) but costly, and analysts can
+only review a small share of transactions. The goal is to rank transactions so
+that most fraud lands in a short review queue, and to keep the model healthy in
+use through monitoring, feedback and controlled retraining.
+
+| Success metric | Target | Achieved |
+|---|---|---|
+| Fraud caught (validation recall at the approved threshold) | ≥ 80% | 85.86% |
+| Review workload (alerts as a share of validation rows) | ≤ 1% | 0.54% (307 of 56,962) |
+| Ranking quality on held-out test data | ROC-AUC ≥ 0.95, AP ≥ 0.70 | 0.976 / 0.733 |
+| Service health | `/health` 200, 0 unhandled errors | Verified, monitored in Grafana |
+
+Accuracy is deliberately not a success metric: predicting "normal" for every
+transaction would be 99.83% accurate and catch no fraud.
+
+### Data sources and known biases
+
+| Item | Detail |
+|---|---|
+| Source | ULB Credit Card Fraud dataset, OpenML 1597 (also on Kaggle), fetched by `scripts/fetch_dataset.py` and versioned with DVC |
+| Format | One CSV: 284,807 rows, `V1`–`V28` (PCA components), `Amount`, `Class`; no missing cells |
+| Class imbalance | 492 frauds (0.1727%); handled with balanced class weights and average-precision/recall metrics |
+| Geography and period | European cardholders over two days in September 2013; patterns may not transfer to other regions, seasons or years |
+| Anonymisation | PCA features hide the original attributes, so demographic or merchant bias cannot be audited directly |
+| Repeated rows | 9,144 extra rows share an identical feature vector; splits use `StratifiedGroupKFold` on a feature-group ID so repeats never cross train, validation and test |
+| No time column | This version has no `Time` field, so temporal ordering and time-based features are unavailable |
+| Feedback bias | Feedback labels exist only for transactions analysts reviewed, so feedback-based precision/recall over-represent flagged cases |
+
 ## 2. System Objectives
 
 The application is designed to:
@@ -294,6 +324,30 @@ read-only.
 Prometheus, Grafana, Alertmanager and cAdvisor
 operate independently of the inference service.
 
+### Programming paradigm
+
+The code is mainly functional and modular. Pipeline stages, drift calculation,
+feedback metrics and retraining steps are plain functions with explicit inputs
+and outputs, which keeps them easy to test in isolation. Object-oriented
+constructs are used where they fit naturally: Pydantic model classes define
+the API request/response schemas, scikit-learn `Pipeline` objects encapsulate
+the model, and FastAPI keeps shared state (loaded model, reference values) on
+the application object.
+
+### Scalability
+
+- **Stateless inference:** the API holds only the read-only model in memory, so
+  more backend replicas (or `uvicorn --workers N`) can run behind a load balancer.
+- **Batch path:** CSV scoring is vectorised (one `predict_proba` call per file),
+  bounded at 50 MiB and 100,000 rows per request to protect memory.
+- **Data engineering:** Spark processes the full dataset at about 20,400 rows/s
+  locally, and the same job scales out on a Spark cluster without code changes.
+- **Separate services:** frontend, backend, MLflow serving and monitoring are
+  independent containers, so each can be scaled or replaced on its own, and the
+  Compose file is the starting point for Swarm or Kubernetes deployment.
+- **Monitoring:** cAdvisor and Prometheus track CPU, memory and latency per
+  container, showing when a service needs more capacity.
+
 ## 13. Security and Failure Handling
 
 The application includes:
@@ -327,7 +381,8 @@ local academic demonstration.
 | Reliability | Input validation and health checks |
 | Security | Encryption at rest, tokens and restricted service bindings |
 | Explainability | Per-prediction feature contributions and tracked feature importance |
-| Code quality | Ruff (PEP 8) enforced in CI |
+| Code quality | Ruff (PEP 8) enforced in CI; docstrings on modules and functions |
+| Scalability | Stateless API replicas, bounded vectorised batch scoring, Spark, independent services |
 
 ## 15. Verified Evidence
 

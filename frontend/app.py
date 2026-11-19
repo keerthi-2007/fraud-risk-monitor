@@ -1,3 +1,10 @@
+"""Streamlit frontend for Fraud Risk Monitor.
+
+Talks to the FastAPI backend only over REST (FRAUD_API_URL). Provides single-CSV
+and bulk-ZIP scoring, per-row explanations, feedback capture and the pipeline
+overview console.
+"""
+
 import io
 import zipfile
 
@@ -215,6 +222,7 @@ def validate_frame(raw_df):
     return numeric_df.reset_index(drop=True), None
 
 def read_single_csv(uploaded_file):
+    """Read and validate one uploaded CSV; return (DataFrame, None) or (None, error message)."""
     if uploaded_file.size > MAX_FILE_BYTES:
         return None, "This file is larger than the 50 MB upload limit."
 
@@ -230,6 +238,7 @@ def read_single_csv(uploaded_file):
 
 
 def read_bulk_zip(uploaded_file):
+    """Read and validate every CSV inside an uploaded ZIP; return (files, None) or (None, error)."""
     if uploaded_file.size > MAX_FILE_BYTES:
         return None, "The ZIP file is larger than the 50 MB upload limit."
 
@@ -284,6 +293,7 @@ def read_bulk_zip(uploaded_file):
 
 
 def api_error(response):
+    """Extract a readable error message from a failed backend response."""
     try:
         detail = response.json().get("detail", response.text)
     except ValueError:
@@ -374,6 +384,7 @@ def render_explanation_panel(saved, scored_df):
 
 
 def render_bulk_feedback_form(features, scored_row, source_file, row_number, file_index):
+    """Render the feedback form for one scored row in bulk mode."""
     feature_values = {
         name: float(features[name])
         for name in FEATURE_COLUMNS

@@ -879,7 +879,7 @@ Additional project files and generated data are created in the configured local 
 
 ## 19. Architecture Documentation
 
-The project includes five primary documentation files.
+The project includes five mandatory documentation files and a requirements traceability matrix.
 
 | Document | File |
 |---|---|
@@ -888,6 +888,7 @@ The project includes five primary documentation files.
 | Low-Level Design and API Specification | `docs/03_low_level_design_api.md` |
 | Test Plan and Test Report | `docs/04_test_plan_and_report.md` |
 | User Manual | `docs/05_user_manual.md` |
+| Requirements Traceability Matrix (every assignment requirement → implementation → evidence) | `docs/06_requirements_traceability.md` |
 
 ### Architecture Diagrams
 

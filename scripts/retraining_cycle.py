@@ -13,6 +13,7 @@ LOG = logging.getLogger("retraining_cycle")
 
 
 def process_cycle(min_feedback=20, min_fraud=3, dry_run=False):
+    """Run one retraining check, then evaluation and promotion for any new candidate."""
     result = run_once(
         min_feedback=min_feedback,
         min_fraud=min_fraud,
@@ -46,6 +47,7 @@ def process_cycle(min_feedback=20, min_fraud=3, dry_run=False):
 
 
 def main():
+    """CLI: run one cycle (--once) or poll continuously (--watch)."""
     parser = argparse.ArgumentParser()
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--once", action="store_true")

@@ -1,3 +1,8 @@
+"""DVC stage `create_splits`: stratified, group-aware train/validation/test splits.
+
+Rows with an identical feature vector share a group ID, so repeats never cross splits.
+"""
+
 import json
 from pathlib import Path
 

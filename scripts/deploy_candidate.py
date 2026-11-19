@@ -17,6 +17,7 @@ COMPOSE = ["docker", "compose"]
 
 
 def health():
+    """Call the backend /health endpoint."""
     with urllib.request.urlopen(
         "http://127.0.0.1:8000/health", timeout=3
     ) as response:
@@ -24,6 +25,7 @@ def health():
 
 
 def wait_for_model(expected_id, timeout=90):
+    """Wait until the backend reports the expected model run ID or time out."""
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
@@ -40,6 +42,7 @@ def wait_for_model(expected_id, timeout=90):
 
 
 def current_configuration():
+    """Read the running backend container's model settings for rollback."""
     container_id = subprocess.check_output(
         ["docker", "compose", "ps", "-q", "backend"],
         cwd=ROOT, text=True
@@ -64,6 +67,7 @@ def current_configuration():
 
 
 def deploy(model_uri, evaluation_id, threshold):
+    """Restart the backend with the given model URI, evaluation run and threshold."""
     environment = os.environ.copy()
     environment.update({
         "ACTIVE_MODEL_URI": str(model_uri),
@@ -82,6 +86,7 @@ def deploy(model_uri, evaluation_id, threshold):
 
 
 def main():
+    """CLI: deploy a verified candidate (--deploy), rolling back if health checks fail."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--deploy", action="store_true",

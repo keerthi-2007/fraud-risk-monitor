@@ -50,6 +50,7 @@ def load_pipeline_snapshot(path=SNAPSHOT_PATH):
 def get_pipeline_status(
     x_monitoring_token: str | None = Header(default=None),
 ):
+    """Return the recorded DVC pipeline status snapshot (token-protected)."""
     expected_token = os.getenv("MONITORING_TOKEN")
 
     if (

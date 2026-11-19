@@ -111,6 +111,7 @@ UNHANDLED_ERRORS = Counter(
 
 
 class ValidationFailureEvent(BaseModel):
+    """Upload rejected by frontend validation, reported for monitoring."""
     model_config = ConfigDict(extra="forbid")
 
     upload_type: Literal["single_csv", "bulk_zip"]
@@ -128,6 +129,7 @@ class ValidationFailureEvent(BaseModel):
 
 
 class PredictRequest(BaseModel):
+    """Request body for /predict and /explain: exactly V1-V28 and Amount."""
     model_config = ConfigDict(extra="forbid")
 
     features: dict[str, float] = Field(
@@ -136,6 +138,7 @@ class PredictRequest(BaseModel):
 
 
 class PredictionResponse(BaseModel):
+    """Model score, threshold and review/normal decision for one transaction."""
     model_run_id: str
     risk_score: float
     score_type: Literal["uncalibrated_model_score"]
@@ -144,6 +147,7 @@ class PredictionResponse(BaseModel):
 
 
 class FeatureContribution(BaseModel):
+    """One feature's effect on the score in an explanation."""
     feature: str
     value: float
     reference_value: float
@@ -157,6 +161,7 @@ class FeatureContribution(BaseModel):
 
 
 class ExplanationResponse(PredictionResponse):
+    """Prediction plus per-feature contributions from /explain."""
     method: Literal["single_feature_occlusion"]
     reference_score: float = Field(
         description="Score of a transaction whose features all equal the reference values."
@@ -229,6 +234,7 @@ def validated_feature_values(payload: PredictRequest) -> dict[str, float]:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Load the approved MLflow model and explanation reference values at startup."""
     mlflow.set_tracking_uri(TRACKING_URI)
     model_uri = os.getenv(
         "MODEL_URI",
@@ -306,6 +312,7 @@ app = FastAPI(
 )
 @app.middleware("http")
 async def observe_http_requests(request, call_next):
+    """Record request metrics and turn unexpected exceptions into a logged JSON 500."""
     started_at = perf_counter()
     try:
         response = await call_next(request)
@@ -367,6 +374,7 @@ app.add_middleware(
 
 @app.get("/metrics", include_in_schema=False)
 def metrics():
+    """Expose Prometheus metrics after refreshing feedback-derived gauges."""
     try:
         refresh_feedback_metrics(feedback_store.FEEDBACK_FILE)
     except (OSError, ValueError):
@@ -383,6 +391,7 @@ def record_validation_failure(
     event: ValidationFailureEvent,
     x_monitoring_token: str | None = Header(default=None),
 ):
+    """Count a frontend upload rejection (token-protected)."""
     expected_token = os.getenv("MONITORING_TOKEN")
     if (
         not expected_token
@@ -401,6 +410,7 @@ def record_validation_failure(
 
 @app.get("/health")
 def health(request: Request):
+    """Liveness check returning the loaded model's MLflow run ID."""
     return {
         "status": "ok",
         "model_run_id": request.app.state.model_run_id,
@@ -409,6 +419,7 @@ def health(request: Request):
 
 @app.post("/predict", response_model=PredictionResponse)
 def predict(payload: PredictRequest, request: Request):
+    """Score one transaction and return its review/normal decision."""
     values = validated_feature_values(payload)
 
     frame = pd.DataFrame([values], columns=FEATURE_COLUMNS)
@@ -486,6 +497,7 @@ async def predict_csv(
         File(description="CSV containing V1 through V28 and Amount."),
     ],
 ):
+    """Score every row of an uploaded CSV and run best-effort drift analysis."""
     if not file.filename or Path(file.filename).suffix.lower() != ".csv":
         raise HTTPException(status_code=415, detail="Upload a .csv file.")
 

@@ -50,6 +50,7 @@ FEATURE_COLUMNS = [f"V{i}" for i in range(1, 29)] + ["Amount"]
 EXPECTED_COLUMNS = FEATURE_COLUMNS + ["Class"]
 
 def file_sha256(path):
+    """SHA-256 of a file, read in 1 MiB chunks."""
     digest = sha256()
     with path.open("rb") as file:
         for chunk in iter(lambda: file.read(1024 * 1024), b""):
@@ -57,6 +58,7 @@ def file_sha256(path):
     return digest.hexdigest()
 
 def load_split(path):
+    """Load a split and check its columns and missing values."""
     frame = pd.read_csv(path)
     if list(frame.columns) != EXPECTED_COLUMNS:
         raise ValueError(f"Unexpected columns in {path.name}: {list(frame.columns)}")
@@ -178,6 +180,7 @@ def compute_feature_importance(model, x, y, settings):
 
 
 def git_commit_hash():
+    """Return the current Git commit, logged with each MLflow run."""
     return subprocess.run(
         ["git", "rev-parse", "HEAD"],
         cwd=ROOT,
@@ -188,6 +191,7 @@ def git_commit_hash():
 
 
 def main():
+    """Train the baseline models and log runs, metrics and feature importance to MLflow."""
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",

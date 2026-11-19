@@ -1,3 +1,5 @@
+"""Compare candidate decision thresholds on validation scores (recall vs alert volume)."""
+
 from pathlib import Path
 
 import mlflow
@@ -35,6 +37,7 @@ print(f"Fraud rows: {int(y.sum()):,}")
 print("The test split is not loaded or used.")
 
 def measure_threshold(y_true, scores, threshold):
+    """Return recall, precision and alert counts for one threshold."""
     predicted = scores >= threshold
     true_positive = int(np.sum(predicted & (y_true == 1)))
     false_positive = int(np.sum(predicted & (y_true == 0)))

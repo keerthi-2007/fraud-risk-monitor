@@ -38,6 +38,7 @@ logger = logging.getLogger("spark_transform")
 
 
 def build_spark(app_name: str = "fraud-risk-spark-transform") -> SparkSession:
+    """Create a local Spark session for the transformation stage."""
     spark = (
         SparkSession.builder.master("local[*]")
         .appName(app_name)
@@ -145,6 +146,7 @@ def run(spark: SparkSession, csv_path: Path, output_dir: Path) -> dict:
 
 
 def main() -> None:
+    """Validate, enrich and write the dataset as Parquet partitioned by Class."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     if not CSV_PATH.exists():
         raise FileNotFoundError(f"Raw CSV not found: {CSV_PATH}")

@@ -1,3 +1,5 @@
+"""Validated, token-protected storage of analyst feedback (features encrypted at rest)."""
+
 from datetime import datetime, timezone
 import json
 import math
@@ -31,6 +33,7 @@ FEATURE_NAMES = [f"V{i}" for i in range(1, 29)] + ["Amount"]
 
 
 class FeedbackSubmission(BaseModel):
+    """Request body for POST /feedback: features, model output and the analyst's label."""
     model_config = ConfigDict(extra="forbid")
 
     features: dict[str, float]
@@ -48,6 +51,7 @@ def save_feedback(
     submission: FeedbackSubmission,
     x_feedback_token: str | None = Header(default=None),
 ):
+    """Validate the token and payload, encrypt the features and append one feedback record."""
     expected_token = os.getenv("FEEDBACK_TOKEN")
     if (
         not expected_token

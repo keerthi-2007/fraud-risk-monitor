@@ -1,6 +1,13 @@
+"""One-off final evaluation of the approved model on the held-out test split.
+
+Kept outside the DVC DAG so the test split is never used for model selection.
+Set MODEL_RUN_ID to evaluate a different MLflow run.
+"""
+
 from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
+import os
 import subprocess
 
 import mlflow
@@ -20,13 +27,14 @@ VALIDATION_PATH = ROOT / "data" / "processed" / "splits" / "validation.csv"
 TEST_PATH = ROOT / "data" / "processed" / "splits" / "test.csv"
 REPORT_PATH = ROOT / "data" / "reports" / "final_test_evaluation.md"
 
-MODEL_RUN_ID = "27da3507bddb413bab9cd0a12aeb092a"
+MODEL_RUN_ID = os.getenv("MODEL_RUN_ID", "27da3507bddb413bab9cd0a12aeb092a")
 RECALL_TARGET = 0.85
 
 mlflow.set_tracking_uri(f"sqlite:///{ROOT / 'mlflow.db'}")
 
 
 def load_xy(frame):
+    """Split a frame into features and labels, checking both classes are present."""
     if "Class" not in frame.columns:
         raise ValueError("Dataset must contain a 'Class' column.")
     y = frame["Class"].to_numpy(dtype=int)
@@ -37,6 +45,7 @@ def load_xy(frame):
 
 
 def evaluate(y, scores, threshold):
+    """Return confusion-matrix counts and metrics at a threshold."""
     predicted = scores >= threshold
     tn, fp, fn, tp = confusion_matrix(
         y, predicted, labels=[0, 1]

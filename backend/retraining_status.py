@@ -100,6 +100,7 @@ def load_retraining_status(path=None):
 def get_retraining_status(
     x_monitoring_token: str | None = Header(default=None),
 ):
+    """Return feedback counts and retraining eligibility (token-protected)."""
     expected = os.getenv("MONITORING_TOKEN")
 
     if (

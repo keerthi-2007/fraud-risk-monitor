@@ -12,6 +12,7 @@ APPROVALS = ROOT / "data/feedback/approved_feedback.jsonl"
 
 
 def read_records(path):
+    """Read JSON-lines records from a file, skipping blank lines."""
     if not path.exists():
         return []
     records = []
@@ -30,6 +31,7 @@ def read_records(path):
 
 
 def record_hash(record):
+    """Stable SHA-256 of a record, used to identify approvals."""
     raw = json.dumps(
         record, sort_keys=True, separators=(",", ":"), allow_nan=False
     ).encode("utf-8")
@@ -37,6 +39,7 @@ def record_hash(record):
 
 
 def main():
+    """CLI to list pending feedback and approve or reject records."""
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="action", required=True)
 

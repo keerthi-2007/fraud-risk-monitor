@@ -1,3 +1,5 @@
+"""DVC stage `eda`: regenerate exploratory charts and the EDA summary report."""
+
 from pathlib import Path
 
 import matplotlib
