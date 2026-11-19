@@ -527,6 +527,15 @@ Display the pipeline DAG:
 dvc dag
 ```
 
+Output of `dvc dag` in the project VM:
+
+![DVC pipeline DAG](Screenshots/dvc/dvc_dag.png)
+
+`data/raw.dvc` (the versioned raw dataset) feeds four stages: `spark_audit`,
+`spark_transform`, `eda` and `prepare_data`. `prepare_data` feeds
+`create_splits`, which feeds both `build_drift_baseline` and `train_baselines`.
+DVC reruns only the stages whose inputs changed.
+
 Inspect dependency and output information:
 
 ```bash
@@ -923,6 +932,7 @@ Screenshots/
 ├── Grafana_dashboards/   # fraud operations, container health, risk monitor
 ├── github_actions/       # CI runs: lint + DVC validation, tests, Docker builds
 ├── spark/                # Spark transformation metrics (≈20,400 rows/s)
+├── dvc/                  # `dvc dag` output: the 7-stage pipeline DAG
 └── docker/               # all eight Compose services running
 ```
 
@@ -939,6 +949,7 @@ These screenshots document:
 - Grafana container monitoring
 - GitHub Actions CI (code style, DVC DAG validation, tests, Docker builds)
 - Spark transformation throughput
+- DVC pipeline DAG (`dvc dag`)
 - All eight Docker Compose services running
 
 The screenshots provide evidence of the locally executed application and monitoring stack.
