@@ -4,23 +4,28 @@ digraph G {
  edge [fontname="DejaVu Sans", fontsize=10, color="#60738F", fontcolor="#475569", arrowsize=0.72, penwidth=1.5];
 label="High-Level System Architecture | Fraud Risk Monitor";
 subgraph cluster_data { label="01   DATA ENGINEERING"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#EEC383"; style="rounded,dashed"; penwidth=1.2; margin=16;
-raw [label="Historical transactions", fillcolor="#FFF2DE", color="#DC9B46"];
-dvc [label="DVC: prepare, split, baseline
-+ independent Spark audit", fillcolor="#FFF2DE", color="#DC9B46"];
+raw [label="Historical transactions
+DVC-versioned (data/raw.dvc)", fillcolor="#FFF2DE", color="#DC9B46"];
+dvc [label="DVC: prepare, split, baseline,
+EDA, train (params.yaml)", fillcolor="#FFF2DE", color="#DC9B46"];
+spark [label="Spark: audit + transform
+Parquet, ~20k rows/s", fillcolor="#FFF2DE", color="#DC9B46"];
 
 }
 subgraph cluster_online { label="02   PREDICTION & USER EXPERIENCE"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#8CB6E7"; style="rounded,dashed"; penwidth=1.2; margin=16;
 ui [label="Streamlit
 CSV / ZIP and dashboards", fillcolor="#EAF3FF", color="#6495D6"];
 api [label="FastAPI
-Approved model inference", fillcolor="#E9F8F0", color="#50A47B"];
+Inference + /explain", fillcolor="#E9F8F0", color="#50A47B"];
 live [label="Approved MLflow model
 Version 1", fillcolor="#E9F8F0", color="#50A47B"];
+mlserve [label="MLflow scoring server
+:5001 /invocations", fillcolor="#E9F8F0", color="#50A47B"];
 
 }
 subgraph cluster_feedback { label="03   INDEPENDENT FEEDBACK-DRIVEN LIFECYCLE"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#84C9A3"; style="rounded,dashed"; penwidth=1.2; margin=16;
 fb [label="Corrected outcome
-Feedback JSONL", fillcolor="#F3F5F9", color="#98A6BB"];
+Feedback JSONL (Fernet-encrypted)", fillcolor="#F3F5F9", color="#98A6BB"];
 approval [label="Confirmed label +
 manual reviewer approval", fillcolor="#FFF2DE", color="#DC9B46"];
 watcher [label="Host watcher
@@ -40,5 +45,5 @@ Webhook notifications", fillcolor="#F0EBFC", color="#9B79D9"];
 
 }
 
-raw -> dvc; dvc -> live [label="original model lifecycle",style=dashed]; dvc -> watcher [label="train + validation splits",style=dashed]; live -> api; ui -> api [label="predict / read status"]; api -> ui [label="results"]; ui -> fb [label="confirmed label"]; fb -> approval; approval -> watcher; watcher -> candidate [label="eligible data"]; candidate -> gate; gate -> api [style=dashed,label="explicit opt-in ONLY",color="#BD6E6E"]; watcher -> status; status -> api [label="GET monitoring"]; api -> prom [label="/metrics"]; prom -> viz;
+raw -> dvc; raw -> spark; live -> mlserve; dvc -> live [label="original model lifecycle",style=dashed]; dvc -> watcher [label="train + validation splits",style=dashed]; live -> api; ui -> api [label="predict / read status"]; api -> ui [label="results"]; ui -> fb [label="confirmed label"]; fb -> approval; approval -> watcher; watcher -> candidate [label="eligible data"]; candidate -> gate; gate -> api [style=dashed,label="explicit opt-in ONLY",color="#BD6E6E"]; watcher -> status; status -> api [label="GET monitoring"]; api -> prom [label="/metrics"]; prom -> viz;
 }

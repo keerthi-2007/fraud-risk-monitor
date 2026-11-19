@@ -2,7 +2,7 @@ digraph G {
  graph [rankdir=LR, splines=polyline, bgcolor="white", labelloc=t, fontname="DejaVu Sans", fontsize=23, fontcolor="#17243D", pad="0.38", nodesep="0.37", ranksep="0.83", outputorder=edgesfirst];
  node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=13, fontcolor="#18263D", color="#9AAAC0", fillcolor="#F5F8FC", penwidth=1.5, margin="0.18,0.13"];
  edge [fontname="DejaVu Sans", fontsize=10, color="#60738F", fontcolor="#475569", arrowsize=0.72, penwidth=1.5];
-label="Deployment Boundaries | Seven Docker Services + Host Worker";
+label="Deployment Boundaries | Eight Docker Services + Host Worker";
 subgraph cluster_outside { label="HOST / BROWSER"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#AAB7C9"; style="rounded,dashed"; penwidth=1.2; margin=16;
 browser [label="Local browser
 http://localhost:8501", fillcolor="#EAF3FF", color="#6495D6"];
@@ -17,7 +17,10 @@ subgraph cluster_app { label="DOCKER COMPOSE: APPLICATION"; fontsize=16; fontnam
 frontend [label="frontend :8501
 Streamlit", fillcolor="#EAF3FF", color="#6495D6"];
 backend [label="backend :8000
-FastAPI + approved model", fillcolor="#E9F8F0", color="#50A47B"];
+FastAPI + approved model
+feedback encrypted at rest", fillcolor="#E9F8F0", color="#50A47B"];
+mlserve [label="mlflow-serve :5001
+MLflow scoring server", fillcolor="#E9F8F0", color="#50A47B"];
 
 }
 subgraph cluster_monitor { label="DOCKER COMPOSE: OBSERVABILITY"; fontsize=16; fontname="DejaVu Sans"; fontcolor="#364559"; color="#C2ADE9"; style="rounded,dashed"; penwidth=1.2; margin=16;
@@ -29,5 +32,5 @@ webhook [label="alert-webhook :8085 internal", fillcolor="#F0EBFC", color="#9B79
 
 }
 
-browser -> frontend; frontend -> backend [label="service network"]; backend -> files [dir=both,label="mounted files"]; watcher -> files [dir=both,label="shared records"]; watcher -> backend [style=dashed,label="explicit opt-in deploy only"]; backend -> prom [dir=back,label="scrape"]; cadvisor -> prom [label="metrics"]; prom -> graf; prom -> alert; alert -> webhook;
+browser -> frontend; frontend -> backend [label="service network"]; backend -> files [dir=both,label="mounted files"]; mlserve -> files [label="read-only model"]; watcher -> files [dir=both,label="shared records"]; watcher -> backend [style=dashed,label="explicit opt-in deploy only"]; backend -> prom [dir=back,label="scrape"]; cadvisor -> prom [label="metrics"]; prom -> graf; prom -> alert; alert -> webhook;
 }

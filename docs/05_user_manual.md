@@ -117,6 +117,22 @@ For example, a score of 0.90 should not
 be described as a verified 90% probability
 of fraud.
 
+### Why was a row scored this way?
+
+Below the results, open **🔍 Why was a row scored this way?**
+
+1. Choose the row number you want to understand.
+2. Click **Explain this row**.
+3. A bar chart shows the values that had the biggest effect.
+
+- Bars to the **right** raised the risk score.
+- Bars to the **left** lowered it.
+- The message lists the biggest factors that raised the score.
+
+Each value is compared with a typical transaction from the
+training data. The chart explains how the model reached its
+score; it does not prove whether the transaction is fraud.
+
 ## 6. Scoring Multiple CSV Files
 
 1. Select the Bulk ZIP upload tab.
@@ -213,12 +229,15 @@ data-processing pipeline and its recent executions.
 
 ### DVC pipeline stages
 
-The dashboard displays four stages:
+The dashboard displays seven stages:
 
-- prepare_data
-- create_splits
-- spark_audit
-- build_drift_baseline
+- prepare_data — cleans the original data
+- create_splits — creates training, validation and test sets
+- spark_audit — checks data quality with Spark
+- spark_transform — uses Spark to validate and enrich the data
+- build_drift_baseline — records what normal data looks like
+- eda — produces the exploratory charts
+- train_baselines — trains the candidate models
 
 An up-to-date status means the recorded DVC
 dependencies and outputs are consistent.
@@ -232,6 +251,9 @@ about the original transaction dataset.
 
 The verified audit processed 284,807 records,
 including 492 fraud records.
+
+The Spark transformation processed the same 284,807 records in
+about 14 seconds (roughly 20,400 records per second).
 
 ### Recorded pipeline executions
 
@@ -337,12 +359,13 @@ this sequence:
 4. Upload a valid transaction CSV.
 5. Click Score this CSV.
 6. Show rows processed and review counts.
-7. Explain the prediction preview.
+7. Explain the prediction preview, then open
+   "Why was a row scored this way?" for one row.
 8. Download the scored results if required.
 9. Demonstrate the feedback form using a
    confirmed outcome, if appropriate.
 10. Open the Pipeline Overview tab.
-11. Show the four DVC stages.
+11. Show the seven DVC stages.
 12. Show Spark audit information.
 13. Show the recorded execution duration
     and measured throughput.
@@ -374,6 +397,12 @@ not Excel workbooks.
 
 No. Ordinary users cannot change the approved
 model through the Streamlit interface.
+
+### Is my feedback stored securely?
+
+Yes. The transaction values in submitted feedback are encrypted
+before they are saved, and can only be read by the system with
+the configured secret key.
 
 ### Does feedback immediately improve the model?
 

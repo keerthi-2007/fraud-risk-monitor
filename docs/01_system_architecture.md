@@ -15,9 +15,10 @@ for transaction fraud risk scoring and operational monitoring.
 The project combines:
 
 - DVC for reproducible data processing
-- Apache Spark for dataset auditing
-- MLflow for experiment tracking and model registration
-- FastAPI for fraud prediction APIs
+- Apache Spark for dataset auditing and data transformation
+- MLflow for experiment tracking, model registration and native model serving
+- FastAPI for fraud prediction and explanation APIs
+- Fernet (cryptography) for encryption of stored feedback
 - Streamlit for the user interface
 - Prometheus and cAdvisor for metrics collection
 - Grafana for visual monitoring
@@ -72,14 +73,17 @@ The source dataset contains:
 | Input features | V1 to V28 and Amount |
 | Target column | Class |
 
-The DVC pipeline contains four stages:
+The DVC pipeline contains seven stages, rooted at the DVC-versioned raw dataset (`data/raw.dvc`):
 
 | Stage | Purpose |
 |---|---|
 | prepare_data | Clean and prepare raw transaction data |
 | create_splits | Create training, validation and test datasets |
 | spark_audit | Audit the original dataset using Spark |
+| spark_transform | Ingest, validate and enrich raw data with Spark into partitioned Parquet |
 | build_drift_baseline | Create a reference distribution from training data |
+| eda | Regenerate exploratory charts and summary |
+| train_baselines | Train candidate models from `params.yaml`; log metrics and feature importance to MLflow |
 
 DVC records stage dependencies and output metadata.
 
@@ -126,7 +130,7 @@ Transactions scoring at or above the threshold are labelled
 
 A review decision does not confirm that fraud occurred.
 
-A host-side watcher can initiate candidate retraining from sufficiently approved and eligible feedback. It is separate from DVC and the seven Docker Compose services. Model promotion is validated independently; **automatic live deployment remains off unless explicitly enabled**.
+A host-side watcher can initiate candidate retraining from sufficiently approved and eligible feedback. It is separate from DVC and the eight Docker Compose services. Model promotion is validated independently; **automatic live deployment remains off unless explicitly enabled**.
 
 ### Feedback-driven candidate lifecycle
 
@@ -147,6 +151,7 @@ The backend loads the approved MLflow model and exposes:
 | GET | /health | API and model health |
 | POST | /predict | Single-transaction prediction |
 | POST | /predict/csv | CSV batch prediction |
+| POST | /explain | Prediction with per-feature contributions |
 | GET | /metrics | Prometheus metrics |
 | POST | /feedback | Save corrected-label feedback |
 | POST | /monitoring/validation-failure | Record upload validation failures |
@@ -168,6 +173,7 @@ The Streamlit interface provides:
 - CSV batch prediction
 - Bulk ZIP processing through the application interface
 - Prediction-result review and feedback submission
+- "Why was a row scored this way?" explanation chart
 - Pipeline overview and recorded execution history
 - Information about the connected prediction API
 - Authenticated retraining eligibility and approval-status display
@@ -229,7 +235,7 @@ DVC pipeline status is collected into a saved JSON snapshot.
 
 The pipeline overview shows:
 
-- The four declared DVC stages
+- The seven declared DVC stages
 - Stage dependency and up-to-date information
 - Spark audit results
 - Recorded execution success or failure
@@ -246,11 +252,12 @@ This is snapshot-based monitoring, not a live job scheduler.
 
 ## 9. Docker Deployment
 
-Docker Compose defines seven services. The retraining watcher is an **additional host-side process** and is not counted as a Docker service.
+Docker Compose defines eight services. The retraining watcher is an **additional host-side process** and is not counted as a Docker service.
 
 | Service | Responsibility | Host port |
 |---|---|---|
 | backend | FastAPI and model inference | 127.0.0.1:8000 |
+| mlflow-serve | MLflow native scoring server (`/invocations`, `/ping`) | 127.0.0.1:5001 |
 | frontend | Streamlit web interface | 8501 |
 | prometheus | Metrics and alert evaluation | 127.0.0.1:9091 |
 | grafana | Monitoring dashboards | 127.0.0.1:3001 |
@@ -263,7 +270,12 @@ Prometheus and Grafana use persistent Docker volumes.
 MLflow metadata, model artifacts, feedback files and
 pipeline-status data are mounted into the backend as needed.
 
-The backend and frontend run as non-root container users.
+The backend, frontend and MLflow serving containers run as non-root users.
+
+The MLflow server loads the model by its source run URI
+(`runs:/27da3507bddb413bab9cd0a12aeb092a/model`) because the
+artifact store is mounted read-only and registry-name loading
+would try to write metadata into it.
 
 ## 10. Security
 
@@ -290,15 +302,19 @@ Verified evidence includes:
 
 | Verification | Result |
 |---|---|
-| Local full pytest suite (last recorded) | 147 passed |
+| Automated suite (latest) | 160 cases; 154 passed, 0 failed (6 data/model-dependent run on VM) |
+| Local full pytest suite (last recorded VM run) | 147 passed |
 | GitHub Actions hosted CI | Passed on commit `96b8113` |
 | Targeted deployment tests after CI fixture fix | 5 passed |
 | Backend Docker build | Passed |
 | Frontend Docker build | Passed |
+| MLflow serving Docker build | Passed (CI) |
+| Spark transformation | 284,807 rows in 13.95 s (20,411.6 rows/s) |
+| MLflow scoring server | Healthy; `/invocations` returns predictions |
 | DVC status | Up to date |
 | Spark audit | Successfully executed |
 | Registered MLflow model | Version 1, READY |
-| Docker services | 7 running |
+| Docker services | 8 running |
 | FastAPI health endpoint | HTTP 200 |
 | Prometheus alert rules | 5 valid |
 | Webhook delivery test | Passed |
@@ -310,7 +326,7 @@ The GitHub Actions workflow executes portable unit/integration tests and builds 
 - The system uses historical transactions in a local academic deployment; live banking operations were not evaluated.
 - Model scores are uncalibrated, and review decisions do not independently confirm fraud.
 - Candidate retraining requires verified, approved feedback. Automatic live deployment is disabled by default; rollback safeguards were tested in isolation.
-- Pipeline history records runs captured by the stage runner, and saved snapshots can become stale. Production authentication and network hardening have not been established.
+- Pipeline history records runs captured by the stage runner, and saved snapshots can become stale. Production authentication, TLS and key rotation have not been established; stored feedback is encrypted at rest.
 
 ## 13. Conclusion
 

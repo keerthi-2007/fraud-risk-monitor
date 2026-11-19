@@ -40,12 +40,15 @@ The application is designed to:
 | Data preparation | Python, DVC | Clean transaction data |
 | Data splitting | Python, DVC | Create train, validation and test splits |
 | Dataset auditing | PySpark, DVC | Check source data quality |
+| Spark transformation | PySpark, DVC, Parquet | Ingest, validate and enrich raw data into partitioned Parquet |
+| Exploratory analysis | Pandas, Matplotlib, DVC | Regenerate EDA charts and summary |
 | Drift baseline | Python, DVC | Generate reference feature distributions |
-| Model development | Scikit-learn, MLflow | Train and track candidate models |
+| Model development | Scikit-learn, MLflow, DVC | Train candidates from `params.yaml`; track metrics and permutation feature importance |
 | Model evaluation | MLflow | Record controlled evaluation results |
-| Prediction service | FastAPI | Serve the approved model |
+| Prediction service | FastAPI | Serve the approved model and per-prediction explanations |
+| Native model serving | MLflow scoring server | Serve the same approved model at `/invocations` |
 | User interface | Streamlit | Accept inputs and display results |
-| Feedback service | FastAPI, JSONL | Store corrected labels |
+| Feedback service | FastAPI, JSONL, Fernet | Store corrected labels with features encrypted at rest |
 | Reviewer approval | Host-side Python CLI, JSONL | Record independent approval and label integrity |
 | Candidate retraining worker | Python, MLflow | Check eligible feedback and train candidate when thresholds are met |
 | Candidate evaluation and promotion | Python, MLflow | Apply validation gates and preserve approved model unless deployment explicitly enabled |
@@ -70,21 +73,40 @@ drift-monitoring baseline.
 
 A separate Spark stage audits the original dataset.
 
-DVC tracks dependencies and outputs for these stages.
+A Spark transformation stage ingests the raw CSV with an
+explicit schema, validates it, adds engineered columns
+(`log_amount`, `is_zero_amount`, `amount_zscore`,
+`feature_hash`, `duplicate_count`) and writes Parquet
+partitioned by class. It processed 284,807 rows in about
+14 s (≈20,400 rows/second).
 
-The pipeline currently has four DVC stages.
+An EDA stage regenerates the exploratory charts and summary.
+
+DVC tracks dependencies and outputs for these stages. The raw
+dataset is versioned by `data/raw.dvc`.
+
+The pipeline has seven DVC stages: `prepare_data`,
+`create_splits`, `spark_audit`, `spark_transform`,
+`build_drift_baseline`, `eda` and `train_baselines`.
 
 ## 5. Model Development Workflow
 
-Training and evaluation are controlled MLflow operations.
+Training is the `train_baselines` DVC stage; final test-set
+evaluation remains a controlled, manual MLflow operation.
 
 The training workflow:
 
 1. Loads prepared training and validation data.
-2. Trains candidate classification models.
-3. Calculates validation metrics.
-4. Logs parameters, metrics and artifacts to MLflow.
-5. Saves model artifacts.
+2. Reads hyperparameters from the DVC-tracked `params.yaml`.
+3. Trains candidate classification models.
+4. Calculates validation metrics.
+5. Computes permutation feature importance on a stratified validation sample.
+6. Logs parameters, Git commit, split and params hashes, metrics,
+   feature importance and artifacts to MLflow.
+7. Writes `metrics/train_metrics.json` for `dvc metrics show`.
+
+Changing a value in `params.yaml` invalidates the training stage,
+so every experiment maps to a Git commit plus an MLflow run ID.
 
 The final evaluation workflow records results
 against the selected model.
@@ -103,6 +125,14 @@ Routine prediction requests do not initiate training.
 5. FastAPI compares the score against the approved threshold.
 6. FastAPI returns a normal or review decision.
 7. Streamlit displays the prediction result.
+
+### Prediction explanation
+
+On request, Streamlit calls `POST /explain` for a chosen row.
+FastAPI rescores the transaction 29 times in one batch, each time
+resetting one feature to its training median, and returns each
+feature's contribution to the score. Streamlit shows the top
+factors as a bar chart in plain language.
 
 The score is uncalibrated and must not be described
 as a verified probability of fraud.
@@ -132,7 +162,7 @@ separate ZIP prediction endpoint.
 ![Feedback lifecycle](../architecture_diagrams/05_Feedback_Sequence.png)
 
 1. A reviewer supplies a confirmed outcome through Streamlit, which submits it to the token-protected FastAPI feedback endpoint.
-2. FastAPI validates and stores the feedback in JSONL. Submission **does not** initiate training immediately.
+2. FastAPI validates and stores the feedback in JSONL, encrypting the transaction features with the configured Fernet key. Submission **does not** initiate training immediately.
 3. An authorised reviewer independently verifies and approves the outcome using the local approval utility.
 4. A separate host-side watcher filters unapproved, invalid, duplicate and data-overlapping feedback.
 5. When there are **at least 20 eligible** new records including **at least 3 fraud and 3 legitimate**, the watcher can train a candidate with the original training split.
@@ -140,7 +170,7 @@ separate ZIP prediction endpoint.
 7. Candidate promotion eligibility is checked. **Automatic deployment is disabled by default** and requires explicit opt-in.
 8. The worker publishes aggregate progress to a JSON snapshot read through `GET /monitoring/retraining-status` and shown in Streamlit.
 
-These operations are separate from the four-stage DVC DAG. An insufficient or unverified feedback sample is never presented as reliable production-model performance.
+These operations are separate from the DVC DAG. An insufficient or unverified feedback sample is never presented as reliable production-model performance.
 
 ## 9. Pipeline Monitoring Workflow
 
@@ -194,7 +224,9 @@ The webhook stores received notifications in JSONL.
 | Browser | Streamlit | HTTP |
 | Streamlit | FastAPI | HTTP REST |
 | FastAPI | MLflow storage | Local database and mounted artifacts |
-| FastAPI | Feedback storage | Local mounted JSONL |
+| FastAPI | Feedback storage | Local mounted JSONL (features encrypted) |
+| Streamlit | FastAPI `/explain` | HTTP REST |
+| Client / evaluator | MLflow scoring server | HTTP REST `/invocations` on port 5001 |
 | Host retraining worker | Feedback and approval JSONL | Local file read + validation |
 | Worker | MLflow | Candidate training, evaluation and gated promotion |
 | Worker | Retraining snapshot | Local JSON file write |
@@ -234,6 +266,29 @@ valid prediction requests when monitoring fails.
 
 Feedback is recorded separately from MLflow model-training artifacts. Independent label confirmation, explicit approval, minimum sample and class counts, duplicate/leakage checks and validation quality gates are required before a candidate is eligible. The watcher does not replace the live model by default.
 
+### Encryption of stored feedback
+
+Feedback contains real transaction feature vectors, so they are
+encrypted at rest with Fernet (AES-128-CBC with HMAC-SHA256)
+before being written. The key lives only in the git-ignored
+`.env`; the backend refuses to start without it, and tampered or
+wrongly-keyed records are rejected when read for retraining.
+
+### Model-agnostic explanations
+
+Single-feature occlusion against training medians was chosen
+over SHAP-style libraries because it works for any scikit-learn
+model, needs no extra dependency and costs one batched
+prediction call.
+
+### Two serving paths
+
+FastAPI is the UI-facing API (validation, explanations, metrics,
+feedback). MLflow's native scoring server exposes the same
+approved model for standard MLflow clients. It loads the model by
+its source run URI because the artifact store is mounted
+read-only.
+
 ### Separate monitoring services
 
 Prometheus, Grafana, Alertmanager and cAdvisor
@@ -243,6 +298,8 @@ operate independently of the inference service.
 
 The application includes:
 
+- Encryption at rest (Fernet) for stored feedback features
+- Encryption key held only in the git-ignored `.env`
 - Separate feedback and monitoring tokens
 - Rejection of invalid prediction inputs
 - CSV upload size and row limits
@@ -268,20 +325,25 @@ local academic demonstration.
 | Testability | Automated unit and integration tests |
 | Observability | Prometheus, Grafana and alerts |
 | Reliability | Input validation and health checks |
-| Security | Tokens and restricted service bindings |
+| Security | Encryption at rest, tokens and restricted service bindings |
+| Explainability | Per-prediction feature contributions and tracked feature importance |
+| Code quality | Ruff (PEP 8) enforced in CI |
 
 ## 15. Verified Evidence
 
 The implementation has demonstrated:
 
-- 147 passing tests in the last recorded complete local suite
+- 160 automated tests in the suite; latest run passed all 154 that do not need the private dataset/model
+- 147 passing tests in the last recorded complete VM suite
 - Five passing targeted deployment tests following the clean-CI fixture fix
 - Successful hosted GitHub Actions CI for commit `96b8113`
-- Four up-to-date DVC stages
+- Seven DVC stages, including Spark transformation, EDA and training
 - Successful Spark audit of 284,807 records
-- Measured throughput of 18,495.64 rows/second
+- Measured audit throughput of 18,495.64 rows/second
+- Spark transformation of 284,807 rows in 13.95 s (20,411.6 rows/second)
+- MLflow scoring server healthy and returning predictions on port 5001
 - Registered MLflow model version 1
-- Seven running Docker services
+- Eight Docker services, including the MLflow scoring server
 - Healthy FastAPI prediction service
 - Successful Alertmanager webhook delivery
 

@@ -333,11 +333,11 @@ The GitHub Actions workflow runs the original **105 portable cases** and the add
 ## 8. Manual Integration Test Cases
 
 These cases were performed during project verification.
-They are separate from the 147 automated pytest cases.
+They are separate from the 160 automated pytest cases.
 
 | Test ID | Component | Test procedure | Expected result | Observed result | Status |
 |---|---|---|---|---|---|
-| MT-01 | Docker deployment | Inspect running Compose services | Seven services running | Seven services running | PASS |
+| MT-01 | Docker deployment | Inspect running Compose services | Eight services running | Eight services running (backend healthy, mlflow-serve healthy) | PASS |
 | MT-02 | API health | Request GET /health | HTTP 200 with approved model ID | HTTP 200, correct model ID | PASS |
 | MT-03 | MLflow registry | Query registered FraudRiskClassifier | Version 1 available | Version 1, READY | PASS |
 | MT-04 | DVC pipeline | Execute dvc status | No outstanding changes | Pipeline up to date | PASS |
@@ -353,6 +353,9 @@ They are separate from the 147 automated pytest cases.
 | MT-14 | Frontend Docker build | Build frontend image independently | Successful build | Image built successfully | PASS |
 | MT-15 | GitHub Actions YAML | Parse and check workflow structure | Valid configured jobs | Portable tests and Docker jobs validated | PASS |
 | MT-16 | Portable tests | Execute selected tests from Git-tracked checkout | Portable tests pass | 105 passed | PASS |
+| MT-17 | Spark transformation | `dvc repro spark_transform` | Parquet written, positive throughput | 284,807 rows, 20,411.6 rows/s | PASS |
+| MT-18 | MLflow scoring server | `GET /ping`; `POST /invocations` with one transaction | Healthy; prediction returned | Healthy; `{"predictions": [1]}` | PASS |
+| MT-19 | Encryption key enforcement | Start backend with `FEEDBACK_ENCRYPTION_KEY` in `.env` | Backend healthy | Backend healthy | PASS |
 
 ## 9. Spark Performance Test Report
 
@@ -369,6 +372,20 @@ allowlisted DVC stage runner.
 | Measured throughput | 18495.64 rows/second |
 | Missing cells | 0 |
 | Fraud records | 492 |
+
+A second Spark stage, `spark_transform`, was executed with
+`dvc repro spark_transform` on the Ubuntu VM:
+
+| Measurement | Recorded value |
+|---|---|
+| Stage | spark_transform |
+| Spark version | 4.3.0 (local mode) |
+| Rows ingested and written | 284,807 (492 fraud, 284,315 legitimate) |
+| Engineered columns | log_amount, is_zero_amount, amount_zscore, feature_hash, duplicate_count |
+| Rows in duplicated feature groups | 14,293 (matches EDA) |
+| Duration | 13.953 seconds |
+| Throughput | 20,411.6 rows/second |
+| Output | Parquet partitioned by Class |
 
 The recorded throughput measures end-to-end execution,
 including DVC and Spark startup and shutdown overhead.
@@ -448,13 +465,13 @@ The 105 original portable cases and 36 new cases are contained within the 147-ca
 | Latest suite incl. explain/encryption/Spark tests | 154 | 154 | 0 | Dev checkout; 6 data/model-dependent cases run on VM |
 | Targeted deployment tests after fixture correction | 5 | 5 | 0 | Ubuntu VM, subset of full suite |
 | Hosted portable test selection | 141 | 141 | 0 | GitHub Actions green on `96b8113` (105 original + 36 new) |
-| Documented manual integration checks | 16 | 16 | 0 | Local Docker/DVC/monitoring verification |
+| Documented manual integration checks | 19 | 19 | 0 | Local Docker/DVC/monitoring verification |
 
 The 141 hosted tests and five targeted deployment tests overlap with the complete local test inventory; they are not extra independent cases. The isolated retraining/promotion tests do not verify live unattended rollout and recovery in a production banking environment.
 
 ## 14. Conclusion
 
-The suite now contains 160 automated tests; the latest run passed all 154 that do not need the private dataset/model (0 failed), and the last full VM run passed 147; 16 manual integration checks were also documented. Following a two-test CI fixture correction, the hosted workflow passed on commit `96b8113`.
+The suite now contains 160 automated tests; the latest run passed all 154 that do not need the private dataset/model (0 failed), and the last full VM run passed 147; 19 manual integration checks were also documented. Following a two-test CI fixture correction, the hosted workflow passed on commit `96b8113`.
 
 The testing covers model inference, input validation,
 feedback, drift monitoring, DVC pipeline monitoring,

@@ -1,0 +1,25 @@
+strict digraph {
+ graph [rankdir=TB, label="DVC Pipeline DAG | Fraud Risk Monitor", labelloc=t, fontname="DejaVu Sans", fontsize=20, pad="0.3"];
+ node [shape=box, style="rounded,filled", fillcolor="#FFF2DE", color="#DC9B46", fontname="DejaVu Sans", fontsize=13, margin="0.18,0.1"];
+ edge [color="#60738F", arrowsize=0.7];
+ "data/raw.dvc" [fillcolor="#EAF3FF", color="#6495D6"];
+ "spark_audit" [fillcolor="#F0EBFC", color="#9B79D9"];
+ "spark_transform" [fillcolor="#F0EBFC", color="#9B79D9"];
+ "train_baselines" [fillcolor="#E9F8F0", color="#50A47B"];
+"prepare_data";
+"create_splits";
+"spark_audit";
+"spark_transform";
+"build_drift_baseline";
+"eda";
+"train_baselines";
+"data/raw.dvc";
+"prepare_data" -> "create_splits";
+"create_splits" -> "build_drift_baseline";
+"create_splits" -> "train_baselines";
+"data/raw.dvc" -> "prepare_data";
+"data/raw.dvc" -> "spark_audit";
+"data/raw.dvc" -> "spark_transform";
+"data/raw.dvc" -> "eda";
+}
+
