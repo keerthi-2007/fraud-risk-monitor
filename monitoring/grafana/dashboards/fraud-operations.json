@@ -328,7 +328,8 @@
             "lineWidth": 2,
             "fillOpacity": 0,
             "showPoints": "never"
-          }
+          },
+          "noValue": "No scoring in this time range. Score a transaction or CSV in the app."
         },
         "overrides": [
           {
@@ -503,7 +504,8 @@
             "lineWidth": 2,
             "fillOpacity": 0,
             "showPoints": "never"
-          }
+          },
+          "noValue": "No feedback in this time range. Submit feedback in the app."
         },
         "overrides": [
           {
@@ -908,7 +910,8 @@
                 "value": 0.2
               }
             ]
-          }
+          },
+          "noValue": "No drift analysis in the last 15 minutes. Score a CSV to run one."
         },
         "overrides": []
       },
@@ -1063,7 +1066,8 @@
           "color": {
             "mode": "fixed",
             "fixedColor": "#56B4E9"
-          }
+          },
+          "noValue": "No feedback saved yet."
         },
         "overrides": []
       },
@@ -1113,7 +1117,8 @@
           "color": {
             "mode": "fixed",
             "fixedColor": "#999999"
-          }
+          },
+          "noValue": "No feedback saved yet."
         },
         "overrides": [
           {
@@ -1474,7 +1479,8 @@
             "lineWidth": 2,
             "fillOpacity": 0,
             "showPoints": "never"
-          }
+          },
+          "noValue": "No explanations yet. Click 'Explain this row' in the app."
         },
         "overrides": [
           {

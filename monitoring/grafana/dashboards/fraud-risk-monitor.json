@@ -1205,7 +1205,8 @@
           "color": {
             "mode": "fixed",
             "fixedColor": "#E69F00"
-          }
+          },
+          "noValue": "No rejected uploads."
         },
         "overrides": []
       },
