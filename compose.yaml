@@ -105,6 +105,11 @@ services:
   grafana:
     restart: unless-stopped
     image: grafana/grafana:13.3.0
+    environment:
+      # Use the Prometheus plugin bundled in the image. The background
+      # installer otherwise downloads newer plugin builds whose signatures
+      # can fail validation, which leaves every dashboard panel erroring.
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
