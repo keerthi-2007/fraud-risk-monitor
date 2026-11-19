@@ -21,6 +21,7 @@ a proposed system.
 |---|---|
 | backend/main.py | API initialization, inference, CSV processing and metrics |
 | backend/feedback_store.py | Feedback validation and JSONL persistence |
+| backend/feedback_crypto.py | Fernet encryption/decryption of stored feedback features |
 | backend/feedback_metrics.py | Feedback analysis and aggregation |
 | backend/feedback_monitor.py | Export feedback metrics to Prometheus |
 | backend/drift_monitor.py | Feature drift analysis |
@@ -39,6 +40,9 @@ a proposed system.
 | scripts/drift_detector.py | PSI drift calculations |
 | scripts/build_pipeline_status.py | Generate DVC monitoring snapshot |
 | scripts/run_pipeline_stage.py | Execute and record allowed DVC stages |
+| scripts/spark_transform.py | Spark ingest, validation, feature engineering, Parquet output |
+| scripts/train_baselines.py | `params.yaml`-driven training, MLflow logging, permutation importance |
+| mlflow_serving/Dockerfile | MLflow native scoring-server image |
 
 ![Low-level component diagram](../architecture_diagrams/02_LLD_Component_Architecture.png)
 
@@ -307,7 +311,7 @@ Each feedback record includes:
 - Model run identifier
 - Prediction and corrected label
 - Risk score and decision threshold
-- Feature values
+- Feature values, encrypted (see below)
 - Optional source file and row number
 - Calculated correctness indicator
 
@@ -316,6 +320,47 @@ Records are appended to:
 `data/feedback/feedback.jsonl`
 
 A thread lock protects writes within the API process.
+
+When `FEEDBACK_ENCRYPTION_KEY` is configured (required by
+Compose), the plaintext `features` object is replaced by:
+
+```json
+{
+  "features_encrypted": "gAAAAAB...<Fernet token>",
+  "encryption": "fernet-v1"
+}
+```
+
+The token is the Fernet encryption (AES-128-CBC + HMAC-SHA256)
+of the sorted JSON feature dictionary. Readers call
+`record_features(record)`, which returns plaintext features for
+legacy records, decrypts encrypted ones, raises
+`FeedbackKeyMissing` if no key is configured, and raises
+`ValueError` for a tampered token or wrong key (the record is
+then counted as invalid by the retraining worker). Approval
+hashes are computed over the stored (encrypted) record.
+
+## 8a. MLflow Scoring Server (port 5001)
+
+Service `mlflow-serve` runs `mlflow models serve --env-manager local`
+for `runs:/27da3507bddb413bab9cd0a12aeb092a/model` (override with
+`MLFLOW_SERVE_MODEL_URI` in `.env`).
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | /ping | Health (used by the container health check) |
+| GET | /version | MLflow version |
+| POST | /invocations | Score rows |
+
+Request:
+
+```json
+{"dataframe_records": [{"V1": 0.0, "...": 0.0, "V28": 0.0, "Amount": 350.0}]}
+```
+
+Response: `{"predictions": [1]}` (predicted class at the model's
+default 0.5 cut-off; the approved business threshold and
+validation rules are applied only by the FastAPI service).
 
 ## 9. POST /monitoring/validation-failure
 
@@ -497,13 +542,15 @@ The snapshot generator can include the latest
 
 | Storage | Format | Purpose |
 |---|---|---|
-| Raw transaction data | CSV | Original dataset |
+| Raw transaction data | CSV (DVC-versioned) | Original dataset |
 | Processed data | CSV | Prepared and split datasets |
 | Spark audit | JSON | Dataset quality information |
+| Spark features | Parquet, partitioned by Class | Enriched dataset from `spark_transform` |
+| Pipeline metrics | JSON (`metrics/`) | Training metrics, feature importance, Spark throughput |
 | Drift baseline | JSON | Training reference distribution |
 | MLflow tracking | SQLite | Experiments and registry metadata |
 | MLflow artifacts | Files | Model and evaluation artifacts |
-| Feedback | JSONL | Corrected-label records |
+| Feedback | JSONL, features Fernet-encrypted | Corrected-label records |
 | Feedback approvals | JSONL | Independent reviewer approvals |
 | Retraining monitor | JSON | Aggregate worker eligibility snapshot |
 | Retraining state | JSON | Last processed eligible feedback set |
@@ -582,14 +629,16 @@ The webhook:
 
 The completed system has been verified through:
 
-- 147 passing local automated tests in the last recorded full-suite run
+- 160 automated tests; latest run 154 passed, 0 failed (6 dataset/model-dependent cases run on the VM)
+- 147 passing local automated tests in the last recorded full VM run
 - Five passing targeted deployment tests following the clean-CI fixture fix
 - Successful hosted GitHub Actions test and Docker jobs on commit `96b8113`
-- Successful backend and frontend Docker builds
+- Successful backend, frontend and MLflow-serving Docker builds
 - Registered MLflow model version 1
-- Four up-to-date DVC stages
-- Real recorded Spark execution and throughput
-- Seven running Docker services
+- Seven DVC stages (including `spark_transform`, `eda`, `train_baselines`)
+- Real recorded Spark execution and throughput (transform: 284,807 rows, 20,411.6 rows/s)
+- MLflow scoring server healthy and returning predictions
+- Eight running Docker services
 - Successful FastAPI health checks
 - Valid Prometheus alert rules
 - Successful Alertmanager-to-webhook delivery

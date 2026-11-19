@@ -20,7 +20,10 @@ In addition to fraud prediction, the application implements:
 - CSV and bulk ZIP transaction scoring
 - Human feedback collection
 - DVC pipeline monitoring
-- Spark data auditing and throughput measurement
+- Spark data auditing, Spark transformation to Parquet and throughput measurement
+- Per-prediction explanations (`/explain`) and tracked feature importance
+- Encryption at rest for stored feedback (Fernet)
+- Native MLflow model serving alongside FastAPI
 - Feature drift monitoring using PSI
 - Prometheus metrics and alerting
 - Grafana operational dashboards
@@ -271,15 +274,18 @@ When initial image building is required, use:
 docker compose up -d --build
 ```
 
-The application uses seven Docker services:
+The application uses eight Docker services:
 
 1. `backend`
 2. `frontend`
-3. `prometheus`
-4. `grafana`
-5. `alertmanager`
-6. `cadvisor`
-7. `alert-webhook`
+3. `mlflow-serve` (MLflow scoring server, http://127.0.0.1:5001)
+4. `prometheus`
+5. `grafana`
+6. `alertmanager`
+7. `cadvisor`
+8. `alert-webhook`
+
+`.env` must contain `MONITORING_TOKEN`, `FEEDBACK_TOKEN` and `FEEDBACK_ENCRYPTION_KEY` (see *Security: Encryption at Rest*).
 
 ### Step 3 — Verify Container Status
 
@@ -430,7 +436,7 @@ Feedback submission alone does not retrain or replace the model. A separate back
 
 ### Retraining status in Pipeline Overview
 
-The dashboard reads the token-protected `GET /monitoring/retraining-status` endpoint and displays the latest saved background-worker snapshot, including feedback received, awaiting approval, eligible fraud/legitimate labels and threshold progress. It is **snapshot-based**; opening the page does not train a model. The background worker (`python -m scripts.retraining_cycle --watch`) runs on the host separately from the seven Docker Compose services and four DVC stages.
+The dashboard reads the token-protected `GET /monitoring/retraining-status` endpoint and displays the latest saved background-worker snapshot, including feedback received, awaiting approval, eligible fraud/legitimate labels and threshold progress. It is **snapshot-based**; opening the page does not train a model. The background worker (`python -m scripts.retraining_cycle --watch`) runs on the host separately from the eight Docker Compose services and the DVC pipeline.
 
 ### Pipeline Overview
 
@@ -548,6 +554,10 @@ A recorded successful Spark audit processed **284,807 rows**.
 | Measured End-to-End Throughput | Approximately 18,496 rows/second |
 
 This throughput measurement includes stage execution overhead and Spark startup, not solely Spark's internal data-processing time.
+
+### Spark Transformation
+
+`dvc repro spark_transform` ingested, validated and enriched all **284,807 rows** in **13.95 s (≈20,412 rows/second)**, writing Parquet partitioned by `Class` to `data/processed/spark_features/`. Results are in `metrics/spark_transform.json` (`dvc metrics show`).
 
 The recorded execution history and pipeline status snapshot are available through the application's monitoring features.
 
