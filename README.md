@@ -647,6 +647,10 @@ Displays fraud scoring and operational metrics, including:
 - High-drift features
 - Drift analysis counts
 - Drift monitoring failures
+- Per-feature PSI bars coloured by the stable / watch / drift bands
+- Reported outcomes (TP / FP / TN / FN) per model version
+- Precision, recall, false alarms and missed fraud estimated from analyst feedback
+- Explanations served and unhandled API errors
 
 ### Container Health
 
@@ -663,7 +667,18 @@ The dashboard is configured using metrics available in the local Docker environm
 
 ### Fraud Risk Monitor
 
-Provides additional application and API monitoring visualisations.
+Provides API monitoring: availability, request rate and p95 latency by route,
+responses by HTTP status, 4xx/5xx counts and error rate, rejected uploads by
+reason, and the Prometheus alerts currently firing or pending.
+
+### Accessible colours
+
+All dashboards use the Okabe–Ito colour-blind-safe palette instead of
+red/green: blue means normal or OK, orange means review or warning, and
+vermillion means a problem. Status is never shown by colour alone. Panels
+carry text labels (UP/DOWN, FIRING), legends list each series with its latest
+value, and neighbouring lines alternate between solid and dashed. Only the
+numbers are coloured; tile backgrounds are not filled.
 
 Dashboard JSON files are stored in:
 
