@@ -825,24 +825,32 @@ These commands can be used for basic local troubleshooting.
 fraud-risk-monitor/
 ├── .github/
 │   └── workflows/
-│       └── ci.yml
-├── backend/
+│       └── ci.yml                  # lint, DVC DAG check, tests, Docker builds
+├── .dvc/                           # DVC configuration
+├── backend/                        # FastAPI inference service
 │   ├── main.py
 │   ├── feedback_store.py
+│   ├── feedback_crypto.py          # Fernet encryption at rest
 │   ├── feedback_metrics.py
 │   ├── feedback_monitor.py
 │   ├── drift_monitor.py
 │   ├── pipeline_status.py
 │   ├── retraining_status.py
 │   └── Dockerfile
-├── frontend/
+├── frontend/                       # Streamlit UI (talks to the backend over REST)
 │   ├── app.py
 │   ├── pipeline_client.py
 │   └── Dockerfile
+├── mlflow_serving/
+│   └── Dockerfile                  # native MLflow model server (port 5001)
 ├── scripts/
+│   ├── fetch_dataset.py
+│   ├── inspect_dataset.py
 │   ├── clean_dataset.py
 │   ├── create_splits.py
 │   ├── spark_audit.py
+│   ├── spark_transform.py
+│   ├── run_eda.py
 │   ├── train_baselines.py
 │   ├── evaluate_final.py
 │   ├── build_drift_baseline.py
@@ -857,30 +865,41 @@ fraud-risk-monitor/
 │   ├── check_promotion_candidate.py
 │   ├── deployment_env.py
 │   └── deploy_candidate.py
+├── data/
+│   ├── raw.dvc                     # DVC pointer to the raw dataset
+│   └── reports/                    # data quality, cleaning, duplicate, EDA, final test reports
+├── metrics/                        # DVC metrics: training, feature importance, Spark throughput
 ├── monitoring/
 │   ├── grafana/
 │   ├── alertmanager/
 │   ├── alerts/
 │   ├── webhook/
 │   └── prometheus.yml
-├── tests/
+├── tests/                          # 160 automated pytest cases
 ├── docs/
 │   ├── 01_system_architecture.md
 │   ├── 02_high_level_design.md
 │   ├── 03_low_level_design_api.md
 │   ├── 04_test_plan_and_report.md
 │   ├── 05_user_manual.md
+│   └── 06_requirements_traceability.md
 ├── architecture_diagrams/
 ├── Screenshots/
 ├── compose.yaml
+├── compose.override.yaml
+├── compose.retraining.yaml
 ├── dvc.yaml
 ├── dvc.lock
+├── params.yaml                     # hyperparameters tracked by DVC and MLflow
 ├── MLproject
+├── python_env.yaml                 # MLproject environment
+├── pyproject.toml                  # Ruff and pytest configuration
 ├── Makefile
 ├── requirements.txt
 ├── requirements-api.txt
 ├── requirements-dev.txt
 ├── requirements-frontend.txt
+├── AI_DISCLOSURE.md                # disclosure of AI assistance used in the project
 └── README.md
 ```
 
