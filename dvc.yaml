@@ -23,6 +23,17 @@ stages:
     - scripts/spark_audit.py
     outs:
     - data/processed/spark_audit.json
+  spark_transform:
+    cmd: python scripts/spark_transform.py
+    deps:
+    - data/raw/creditcard.csv
+    - requirements.txt
+    - scripts/spark_transform.py
+    outs:
+    - data/processed/spark_features
+    metrics:
+    - metrics/spark_transform.json:
+        cache: false
   build_drift_baseline:
     cmd: python -m scripts.build_drift_baseline
     deps:

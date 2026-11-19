@@ -70,6 +70,7 @@ jobs:
             tests/test_drift_monitor.py \
             tests/test_explain.py \
             tests/test_feedback.py \
+            tests/test_feedback_encryption.py \
             tests/test_feedback_metrics.py \
             tests/test_feedback_metrics_api.py \
             tests/test_feedback_monitor.py \
@@ -110,3 +111,6 @@ jobs:
 
       - name: Build frontend image
         run: docker build -f frontend/Dockerfile -t aiops-frontend-ci .
+
+      - name: Build MLflow serving image
+        run: docker build -f mlflow_serving/Dockerfile -t aiops-mlflow-serve-ci .

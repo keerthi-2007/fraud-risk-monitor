@@ -386,7 +386,7 @@ The experiment also contains alternative model runs and final evaluation records
 
 Each training run additionally logs `params.yaml`, its SHA-256, permutation feature importance (`feature_importance.json` and one `perm_importance_<feature>` metric per feature) and a `top_feature` tag.
 
-The registered model can also be served natively by MLflow: `docker compose --profile mlflow-serve up mlflow-serve` exposes `POST http://127.0.0.1:5001/invocations`.
+The registered model is also served natively by MLflow from a dedicated image (`mlflow_serving/Dockerfile`, compose service `mlflow-serve`): `POST http://127.0.0.1:5001/invocations`, health at `GET /ping`.
 
 The MLflow UI command reads an existing tracking database. It does not create the original experiment results or retrain the approved model.
 
@@ -488,6 +488,7 @@ DVC manages the data-processing stages and their dependencies.
 | `create_splits` | Generate training, validation and test splits |
 | `spark_audit` | Independently audit raw data using Spark |
 | `build_drift_baseline` | Build reference statistics for drift monitoring |
+| `spark_transform` | **Spark** ingestion/transformation: typed schema, validation, engineered columns (`log_amount`, `is_zero_amount`, `amount_zscore`, `feature_hash`, `duplicate_count`) written as Parquet partitioned by `Class`; throughput in `metrics/spark_transform.json` |
 | `eda` | Regenerate exploratory data analysis charts and summary |
 | `train_baselines` | Train candidate models with `params.yaml` hyperparameters, log runs + permutation feature importance to MLflow, write `metrics/train_metrics.json` |
 
@@ -942,3 +943,16 @@ The application combines **Streamlit, FastAPI, Scikit-learn, DVC, MLflow, Apache
 It provides fraud risk scoring, recorded pipeline execution information, experiment tracking, automated testing, drift monitoring, feedback capture and operational dashboards.
 
 The project illustrates how AIOps practices can improve the observability, traceability and maintainability of an applied machine learning system.
+
+## Security: Encryption at Rest
+
+Feedback submitted from the UI contains real transaction feature vectors. The backend encrypts them with **Fernet** (AES-128-CBC + HMAC-SHA256, `cryptography` package) before writing `data/feedback/feedback.jsonl`; only `features_encrypted` is stored, and tampering is detected on read. Retraining scripts decrypt transparently via `backend/feedback_crypto.py`.
+
+Generate a key once and add it to the git-ignored `.env`:
+
+```bash
+echo "FEEDBACK_ENCRYPTION_KEY=$(python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" >> .env
+```
+
+`docker compose up` refuses to start without it. Keep a copy of the key: encrypted feedback cannot be recovered without it. Other controls: token-protected feedback/monitoring endpoints, services bound to `127.0.0.1`, non-root containers, secrets only in `.env`.
+

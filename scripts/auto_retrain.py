@@ -20,6 +20,7 @@ import os
 import subprocess
 import time
 from datetime import datetime, timezone
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +30,10 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import average_precision_score, precision_recall_curve, roc_auc_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+
+# Make the shared backend package importable when run as a script.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from backend.feedback_crypto import record_features  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 SPLITS = ROOT / "data" / "processed" / "splits"
@@ -151,7 +156,7 @@ def read_feedback(path: Path, known: set[str],
                     continue
 
             label = LABELS[record["corrected_label"]]
-            features = record["features"]
+            features = record_features(record)
             fp = fingerprint(features)
         except (KeyError, ValueError, TypeError, json.JSONDecodeError, OverflowError):
             counts["invalid"] += 1
